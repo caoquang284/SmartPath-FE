@@ -17,6 +17,10 @@ export interface StoredUser {
   point: number;
 
   createdAt?: string;
+
+  isBanned?: boolean; 
+  bannedUntil?: string | null; 
+  banReason?: string | null;
 }
 
 export type UserProfile = Omit<StoredUser, 'password'>;
@@ -55,7 +59,7 @@ export interface PostResponseDto {
   title: string;
   content: string;
   isQuestion: boolean;
-  createdAt: string;            
+  createdAt: string;
   updatedAt?: string | null;
   authorUsername?: string | null;
   authorPoint: number
@@ -89,8 +93,8 @@ export interface CommentResponseDto {
   authorUsername: string;
   authorAvatarUrl?: string | null;
   authorPoint: number;
-  createdAt: string;               
-  replies?: CommentResponseDto[];  
+  createdAt: string;
+  replies?: CommentResponseDto[];
   isPositiveReacted: boolean | null;
   isNegativeReacted: boolean | null;
   negativeReactionCount: number;
@@ -137,7 +141,7 @@ export interface Chat {
   name?: string | null;
   member1Id: string;
   member2Id: string;
-  otherUser?: ChatOtherUser | null;   
+  otherUser?: ChatOtherUser | null;
   messages: Message[];
 }
 
@@ -153,7 +157,7 @@ export interface MessageRequestDto {
 }
 
 export interface Notification {
-  id: string 
+  id: string
   type: string;
   content: string;
   isRead: boolean;
@@ -166,7 +170,7 @@ export interface SystemLog {
   user_id: string;
   action: string;
   description?: string;
-  target_type?: 'post' | 'comment' | 'reaction' | 'report'; 
+  target_type?: 'post' | 'comment' | 'reaction' | 'report';
   createdAt: string;
   url: string;
 }
@@ -246,7 +250,7 @@ export interface UserRequestDto {
   yearOfStudy?: number;
   bio?: string;
   avatarUrl?: string;
-  role?: UserRole; 
+  role?: UserRole;
 }
 
 export interface BadgeAward {
@@ -265,7 +269,7 @@ export interface FriendshipResponseDto {
   createdAt: string;
 }
 export interface FriendSummaryDto {
-  id: string;                 
+  id: string;
   username: string;
   fullName?: string;
   avatarUrl?: string | null;
@@ -276,7 +280,7 @@ export interface FriendSummaryDto {
 
 export enum Role {
   Admin,
-  Student 
+  Student
 }
 
 export enum BotMessageRole {
@@ -345,38 +349,50 @@ export interface BotGenerateResponse {
 }
 
 export interface KnowledgeSearchHit {
-chunkId: string; // Guid
-documentId: string; // Guid
-chunkIndex: number;
-content: string;
-title?: string | null;
-sourceUrl?: string | null;
-score: number;
+  chunkId: string; // Guid
+  documentId: string; // Guid
+  chunkIndex: number;
+  content: string;
+  title?: string | null;
+  sourceUrl?: string | null;
+  score: number;
 }
 
 export interface KnowledgeDocumentDto {
-id: string;
-title?: string | null;
-sourceUrl?: string | null;
-meta?: string | null;
-createdAt: string; // ISO
-chunkCount: number;
+  id: string;
+  title?: string | null;
+  sourceUrl?: string | null;
+  meta?: string | null;
+  createdAt: string; // ISO
+  chunkCount: number;
 }
 
 export interface KnowledgeDocumentUpdateRequest {
-title?: string | null;
-meta?: string | null;
+  title?: string | null;
+  meta?: string | null;
 }
 
 export interface KnowledgeTextIngestRequest {
-title: string;
-sourceUrl?: string | null;
-text: string;
+  title: string;
+  sourceUrl?: string | null;
+  text: string;
 }
 
 export interface KnowledgeUrlIngestRequest {
-url: string;
-title?: string | null;
+  url: string;
+  title?: string | null;
 }
 
 export type KnowledgeListResult = PageResult<KnowledgeDocumentDto>;
+
+export interface AdminDailyCount { date: string; count: number }
+export interface AdminActivityDaily {
+  date: string;
+  posts: number; comments: number; reactions: number; reports: number; newUsers: number;
+}
+
+export interface UserAdminSummary {
+  user: UserProfile;
+  posts: number; comments: number; reactions: number; friends: number;
+  reportsAgainst: number; reportsFiled: number;
+}

@@ -127,7 +127,7 @@ export function Sidebar() {
         {/* Main (luôn hiển thị) */}
         <div>
           <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Main
+            Chính
           </h3>
           <nav className="space-y-1">
             {mainLinks.map(renderLinkBtn)}
@@ -137,7 +137,7 @@ export function Sidebar() {
         {/* Social */}
         <div>
           <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Social
+            Xã hội
           </h3>
           <nav className="space-y-1">
             {socialLinks.map(renderLinkBtn)}
@@ -156,6 +156,9 @@ export function Sidebar() {
 
         {/* Account */}
         <div className="mt-auto">
+          <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Cá nhân
+          </h3>
           <nav className="space-y-1">
             {bottomLinks.map(renderLinkBtn)}
           </nav>
