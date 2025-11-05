@@ -42,6 +42,7 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import clsx from 'clsx';
+import SafeMarkdown from '@/components/ui/safe-markdown';
 
 type ConversationItem = BotConversationResponse;
 
@@ -52,22 +53,22 @@ export default function ChatbotPage() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navbar />
-      <div className="flex">
-        <Sidebar />
+        <Navbar />
+        <div className="flex">
+          <Sidebar />
 
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">Chatbot AI</h1>
-              <p className="text-muted-foreground">
-                Đăng nhập để sử dụng tính năng này
-              </p>
+          <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold">Chatbot AI</h1>
+                <p className="text-muted-foreground">
+                  Đăng nhập để sử dụng tính năng này
+                </p>
+              </div>
             </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
     );
   }
 
@@ -449,32 +450,27 @@ export default function ChatbotPage() {
                                 </Avatar>
 
                                 {/* Bubble */}
-                                <div className="max-w-[75%]">
-                                  <div
-                                    className={clsx(
-                                      'rounded-2xl px-4 py-2 text-sm leading-6 whitespace-pre-wrap',
-                                      isAssistant
-                                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                                        : 'bg-blue-600 text-white'
-                                    )}
-                                  >
-                                    {m.content}
-                                  </div>
-                                  <div
-                                    className={clsx(
-                                      'mt-1 text-[11px]',
-                                      isAssistant ? 'text-slate-500' : 'text-blue-200 text-right'
-                                    )}
-                                  >
-                                    {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
-                                  </div>
+                                <div
+                                  className={clsx(
+                                    'rounded-2xl px-4 py-2 text-sm',
+                                    isAssistant
+                                      ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
+                                      : 'bg-blue-600 text-white'
+                                  )}
+                                >
+                                  {isAssistant ? (
+                                    <SafeMarkdown isAssistant className="markdown-body" >
+                                      {m.content || ''}
+                                    </SafeMarkdown>
+                                  ) : (
+                                    <SafeMarkdown className="markdown-body">{m.content || ''}</SafeMarkdown>
+                                  )}
                                 </div>
                               </li>
                             );
                           })}
                           <div ref={endRef} />
                         </ul>
-
                       )}
                     </>
                   ) : (
