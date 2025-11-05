@@ -343,3 +343,40 @@ export interface BotGenerateResponse {
   userMessage: BotMessageResponse;
   assistantMessage: BotMessageResponse;
 }
+
+export interface KnowledgeSearchHit {
+chunkId: string; // Guid
+documentId: string; // Guid
+chunkIndex: number;
+content: string;
+title?: string | null;
+sourceUrl?: string | null;
+score: number;
+}
+
+export interface KnowledgeDocumentDto {
+id: string;
+title?: string | null;
+sourceUrl?: string | null;
+meta?: string | null;
+createdAt: string; // ISO
+chunkCount: number;
+}
+
+export interface KnowledgeDocumentUpdateRequest {
+title?: string | null;
+meta?: string | null;
+}
+
+export interface KnowledgeTextIngestRequest {
+title: string;
+sourceUrl?: string | null;
+text: string;
+}
+
+export interface KnowledgeUrlIngestRequest {
+url: string;
+title?: string | null;
+}
+
+export type KnowledgeListResult = PageResult<KnowledgeDocumentDto>;

@@ -12,10 +12,13 @@ import {
   MessageSquare,
   BookOpen,
   UserPlus,
-  Calendar,
   Settings,
   Award,
   BotIcon,
+  ShieldCheck,
+  FileText,
+  UsersIcon,
+  Database
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -25,19 +28,26 @@ export function Sidebar() {
   const isGuest = !profile?.id;
 
   const mainLinks = [
-    { href: '/forum', icon: Home, label: 'Home' },
-    { href: '/materials', icon: BookOpen, label: 'Materials' },
+    { href: '/forum', icon: Home, label: 'Trang chủ' },
+    { href: '/materials', icon: BookOpen, label: 'Tài liệu' },
   ];
 
   const socialLinks = [
-    { href: '/friends', icon: UserPlus, label: 'Friends' },
-    { href: '/messages', icon: MessageSquare, label: 'Messages' },
+    { href: '/friends', icon: UserPlus, label: 'Bạn bè' },
+    { href: '/messages', icon: MessageSquare, label: 'Tin nhắn' },
     { href: '/chatbot', icon: BotIcon, label: 'Chatbot' },
   ];
 
   const bottomLinks = [
     { href: '/dashboard', icon: Settings, label: 'Dashboard' },
-    { href: '/achievements', icon: Award, label: 'Achievements' },
+    { href: '/achievements', icon: Award, label: 'Thành tựu' },
+  ];
+
+  const adminLinks = [
+    { href: '/admin/achievement-moderation', icon: ShieldCheck, label: 'Quản trị thành tựu' },
+    { href: '/admin/material-moderation', icon: FileText, label: 'Quản trị tài liệu' },
+    { href: '/admin/user-moderation', icon: UsersIcon, label: 'Quản trị người dùng' },
+    { href: '/admin/knowledge-moderation', icon: Database, label: 'Quản trị dataset chatbot' },
   ];
 
   // ---- Normalize profile fields (chỉ dùng khi không phải guest) ----
@@ -65,6 +75,14 @@ export function Sidebar() {
     if (!rawAvatar) return undefined;
     return avatarVersion ? `${rawAvatar}?v=${encodeURIComponent(avatarVersion)}` : rawAvatar;
   }, [rawAvatar, avatarVersion]);
+
+  const isAdmin = (() => {
+    const r: any = (profile as any)?.role;
+    if (!r) return false;
+    if (typeof r === 'string') return r.toLowerCase() === 'admin';
+    if (typeof r === 'number') return r === 0;
+    return false;
+  })();
 
   const renderLinkBtn = (link: { href: string; icon: any; label: string }) => {
     const isActive = pathname === link.href || pathname?.startsWith(link.href + '/');
@@ -125,6 +143,16 @@ export function Sidebar() {
             {socialLinks.map(renderLinkBtn)}
           </nav>
         </div>
+
+        {/* Admin */}
+        {isAdmin && (
+          <div>
+            <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Admin
+            </h3>
+            <nav className="space-y-1">{adminLinks.map(renderLinkBtn)}</nav>
+          </div>
+        )}
 
         {/* Account */}
         <div className="mt-auto">
