@@ -44,7 +44,7 @@ export function Sidebar() {
   ];
 
   const adminLinks = [
-    { href: '/admin/achievement-moderation', icon: ShieldCheck, label: 'Quản trị thành tựu' },
+    { href: '/admin/badge-moderation', icon: ShieldCheck, label: 'Quản trị thành tựu' },
     { href: '/admin/material-moderation', icon: FileText, label: 'Quản trị tài liệu' },
     { href: '/admin/user-moderation', icon: UsersIcon, label: 'Quản trị người dùng' },
     { href: '/admin/knowledge-moderation', icon: Database, label: 'Quản trị dataset chatbot' },

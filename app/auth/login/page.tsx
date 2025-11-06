@@ -11,6 +11,7 @@ import { GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { authAPI } from '@/lib/api/authAPI';
+import { RaycastAnimatedBackground } from '@/components/ui/raycast-animated-background';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,7 +52,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
-      <Card className="w-full max-w-md">
+      <RaycastAnimatedBackground/>
+      <Card className="w-full max-w-md z-10">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-blue-500 rounded-full">
