@@ -21,6 +21,7 @@ const g = globalThis as unknown as {
   __chatConn?: signalR.HubConnection;
   __chatStarted?: boolean;
   __chatHandlersSet?: boolean;
+  __chatStartPromise?: Promise<void>;  
 };
 
 export function getHubConnection(hubUrl: string, tokenGetter: () => string | null) {
@@ -31,7 +32,8 @@ export function getHubConnection(hubUrl: string, tokenGetter: () => string | nul
         withCredentials: true,
       })
       .withAutomaticReconnect({
-        nextRetryDelayInMilliseconds: ctx => (ctx.previousRetryCount < 5 ? 1000 * (ctx.previousRetryCount + 1) : 5000),
+        nextRetryDelayInMilliseconds: (ctx) =>
+          ctx.previousRetryCount < 5 ? 1000 * (ctx.previousRetryCount + 1) : 5000,
       })
       .build();
 
@@ -43,8 +45,42 @@ export function getHubConnection(hubUrl: string, tokenGetter: () => string | nul
 }
 
 export async function ensureStarted(conn: signalR.HubConnection) {
-  if (!g.__chatStarted) {
-    await conn.start();
+  // Đọc state một lần
+  let state: signalR.HubConnectionState = conn.state;
+
+  // Nếu đã Connected thì xong
+  if (state === signalR.HubConnectionState.Connected) return;
+
+  // Nếu đang Connecting/Reconnecting: chờ nó ổn định (Connected hoặc Disconnected)
+  if (
+    state === signalR.HubConnectionState.Connecting ||
+    state === signalR.HubConnectionState.Reconnecting
+  ) {
+    // Poll tối đa ~10s (50 * 200ms)
+    for (let i = 0; i < 50; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      state = conn.state; // re-read thực tế
+      if (
+        state === signalR.HubConnectionState.Connected ||
+        state === signalR.HubConnectionState.Disconnected
+      ) {
+        break;
+      }
+    }
+
+    // Nếu đã Connected sau khi chờ thì return
+    if (state === signalR.HubConnectionState.Connected) return;
+  }
+
+  // Chỉ start khi đang Disconnected — chống gọi song song bằng promise toàn cục
+  if (state === signalR.HubConnectionState.Disconnected) {
+    const gg = g as typeof g & { __chatStartPromise?: Promise<void> };
+    if (!gg.__chatStartPromise) {
+      gg.__chatStartPromise = conn.start().finally(() => {
+        gg.__chatStartPromise = undefined;
+      });
+    }
+    await gg.__chatStartPromise;
     g.__chatStarted = true;
     console.log('[SignalR] started');
   }
@@ -67,4 +103,35 @@ export function stopOnUnload(conn: signalR.HubConnection) {
   if (typeof window === 'undefined') return;
   const handler = () => conn.stop().catch(() => {});
   window.addEventListener('beforeunload', handler, { once: true });
+}
+
+export async function waitUntilConnected(conn: signalR.HubConnection, timeoutMs = 10000) {
+  // Đợi ensureStarted xử lý trạng thái Disconnected
+  await ensureStarted(conn);
+
+  let state: signalR.HubConnectionState = conn.state;
+  if (state === signalR.HubConnectionState.Connected) return;
+
+  const start = Date.now();
+  while (true) {
+    await new Promise((r) => setTimeout(r, 150));
+    state = conn.state;
+    if (state === signalR.HubConnectionState.Connected) return;
+    if (state === signalR.HubConnectionState.Disconnected) {
+      // cố start lại (phòng trường hợp bị rơi về Disconnected)
+      await ensureStarted(conn);
+    }
+    if (Date.now() - start > timeoutMs) {
+      throw new Error("Timeout waiting for SignalR connection to be Connected");
+    }
+  }
+}
+
+export async function invokeSafe<T = any>(
+  conn: signalR.HubConnection,
+  method: string,
+  ...args: any[]
+): Promise<T> {
+  await waitUntilConnected(conn);
+  return conn.invoke(method, ...args);
 }

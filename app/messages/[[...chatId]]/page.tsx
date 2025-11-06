@@ -196,7 +196,7 @@ export default function MessagesPage() {
                       <div className="text-sm text-muted-foreground p-3">No chats</div>
                     ) : (
                       chats.map((chat) => {
-                        const title = chat.otherUser?.fullName ?? chat.name ?? 'Direct Chat';
+                        const title = chat.otherUser?.fullName ?? 'Unknown';
                         const avatarUrl = chat.otherUser?.avatarUrl ?? undefined;
                         const avatarFallback = (chat.otherUser?.fullName?.[0] ?? 'D').toUpperCase();
                         const lastMessage = (chat.messages ?? [])
@@ -241,7 +241,7 @@ export default function MessagesPage() {
                         <AvatarFallback>{(otherMember?.fullName?.[0] ?? 'D').toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{selectedChat.name ?? otherMember?.fullName ?? 'Direct Chat'}</div>
+                        <div className="font-medium">{otherMember?.fullName ?? 'Direct Chat'}</div>
                         <div className="text-sm text-muted-foreground">
                           {connected ? 'Connected' : 'Connecting...'}
                         </div>

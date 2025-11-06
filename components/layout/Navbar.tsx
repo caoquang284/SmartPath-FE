@@ -58,11 +58,12 @@ export function Navbar() {
 
   // Chia nav links: public vs. chỉ dành cho user đăng nhập
   const publicLinks = [
-    { href: '/forum', label: 'Forum' },
-    { href: '/materials', label: 'Materials' },
+    { href: '/forum', label: 'Diễn đàn' },
+    { href: '/materials', label: 'Tài liệu' },
   ];
   const authedOnlyLinks = [
-    { href: '/friends', label: 'Friends' },
+    { href: '/friends', label: 'Bạn bè' },
+    { href: '/chatbot', label: 'Chatbot' },
   ];
 
   // ⬇️ Chỉ bật polling notifications khi đã đăng nhập
