@@ -66,8 +66,11 @@ export function Navbar() {
     { href: '/chatbot', label: 'Chatbot' },
   ];
 
-  // ⬇️ Chỉ bật polling notifications khi đã đăng nhập
-  const { items, unread, loading, markRead, removeLocal, refresh } = useNotifications(profile ? 20000 : 0);
+  const { items, unread, loading, markRead, removeLocal, refresh } = useNotifications({
+    enabled: !isGuest,   
+    pollMs: 20000,      
+    resetOnDisable: true 
+  });
 
   const handleOpen = async (n: any) => {
     try {
