@@ -366,6 +366,12 @@ export interface KnowledgeDocumentDto {
   chunkCount: number;
 }
 
+export type KnowledgePreviewResultDto = {
+  proposedTitle: string;
+  proposedSourceUrl?: string | null;
+  relatedDocuments: KnowledgeDocumentDto[];
+};
+
 export interface KnowledgeDocumentUpdateRequest {
   title?: string | null;
   meta?: string | null;
