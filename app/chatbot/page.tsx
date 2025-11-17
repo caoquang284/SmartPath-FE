@@ -386,7 +386,7 @@ export default function ChatbotPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">
-                    {activeConversation?.title || (activeId ? 'New Chat' : 'Chatbot')}
+                    {activeConversation?.title || (activeId ? 'New Chat' : 'Trợ lí thông minh Smartpath')}
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">
                     {profile?.fullName ? `Xin chào, ${profile.fullName}` : 'Sinh viên SmartPath'}
@@ -522,16 +522,6 @@ export default function ChatbotPage() {
             <div className="space-y-2">
               <Label htmlFor="title">Tiêu đề (tuỳ chọn)</Label>
               <Input id="title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sys">System Prompt (tuỳ chọn)</Label>
-              <Textarea
-                id="sys"
-                rows={3}
-                placeholder="Ví dụ: Bạn là trợ lý học tập cho sinh viên SmartPath…"
-                value={newSystemPrompt}
-                onChange={(e) => setNewSystemPrompt(e.target.value)}
-              />
             </div>
           </div>
           <DialogFooter>
