@@ -16,6 +16,8 @@ import {
   BotConversationWithMessagesResponse,
   BotMessageResponse,
   BotMessageRole,
+  BotGenerateMeta,
+  BotGenerateResponse
 } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -50,6 +52,41 @@ export default function ChatbotPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
 
+  // Left pane: conversations
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [loadingConvos, setLoadingConvos] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(50);
+  const [total, setTotal] = useState(0);
+  const hasMoreConvos = useMemo(() => conversations.length < total, [conversations.length, total]);
+
+  // Current conversation & messages
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<BotMessageResponse[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [messageMeta, setMessageMeta] = useState<Record<string, BotGenerateMeta | undefined>>({});
+
+  // Compose
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
+  // Rename dialog
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+
+  // Create dialog (optional system prompt)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newSystemPrompt, setNewSystemPrompt] = useState('');
+
+  useEffect(() => {
+    if (!loadingMore) endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loadingMore]);
+
   if (!profile) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -71,39 +108,6 @@ export default function ChatbotPage() {
       </div>
     );
   }
-
-  // Left pane: conversations
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [loadingConvos, setLoadingConvos] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(50);
-  const [total, setTotal] = useState(0);
-  const hasMoreConvos = useMemo(() => conversations.length < total, [conversations.length, total]);
-
-  // Current conversation & messages
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<BotMessageResponse[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  // Compose
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const endRef = useRef<HTMLDivElement | null>(null);
-
-  // Rename dialog
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState('');
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-
-  // Create dialog (optional system prompt)
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newSystemPrompt, setNewSystemPrompt] = useState('');
-
-  useEffect(() => {
-    if (!loadingMore) endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loadingMore]);
 
   const loadConversations = async (reset = true) => {
     try {
@@ -130,6 +134,7 @@ export default function ChatbotPage() {
       const res: BotConversationWithMessagesResponse = await botAPI.getConversationWithMessages(id, 50);
       setActiveId(res.id);
       setMessages(res.messages ?? []);
+      setMessageMeta({});
     } catch (e: any) {
       toast({ title: 'Không tải được hội thoại', description: String(e?.message ?? e), variant: 'destructive' });
     } finally {
@@ -236,6 +241,23 @@ export default function ChatbotPage() {
         const filtered = prev.filter((m) => !m.id.startsWith('temp-'));
         return [...filtered, res.userMessage, res.assistantMessage];
       });
+
+      setMessageMeta((prev) => ({
+        ...prev,
+        [res.assistantMessage.id]: res.meta,
+      }));
+
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem(
+            `botMeta:${res.assistantMessage.id}`,
+            JSON.stringify(res.meta)
+          );
+        } catch {
+          // ignore
+        }
+      }
+
       await loadConversations(true);
     } catch (e: any) {
       setMessages((prev) => prev.filter((m) => m.id !== tempAssistant.id));
@@ -421,6 +443,7 @@ export default function ChatbotPage() {
                             const role = normalizeRole(m.role as any);
                             const isAssistant = role === 'assistant';
                             const isUser = role === 'user';
+                            const meta = messageMeta[m.id];
 
                             return (
                               <li
@@ -464,6 +487,32 @@ export default function ChatbotPage() {
                                     </SafeMarkdown>
                                   ) : (
                                     <SafeMarkdown className="markdown-body">{m.content || ''}</SafeMarkdown>
+                                  )}
+
+                                  {isAssistant && meta?.sources && meta.sources.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-slate-300/60 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
+                                      <span className="font-semibold mr-1">Nguồn tham khảo:</span>
+                                      <ul className="mt-1 space-y-1">
+                                        {meta.sources.map((s, idx) => {
+                                          const href = s.sourceUrl ?? '#';
+                                          const label =
+                                            s.title || s.sourceUrl || `Tài liệu ${idx + 1}`;
+
+                                          return (
+                                            <li key={s.documentId ?? `${m.id}-src-${idx}`}>
+                                              <a
+                                                href={href}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="underline underline-offset-2 hover:opacity-80"
+                                              >
+                                                {label}
+                                              </a>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    </div>
                                   )}
                                 </div>
                               </li>

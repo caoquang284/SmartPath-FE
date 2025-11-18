@@ -345,6 +345,7 @@ export type PageResult<T> = {
 export interface BotGenerateResponse {
   userMessage: BotMessageResponse;
   assistantMessage: BotMessageResponse;
+  meta: BotGenerateMeta;
 }
 
 export interface KnowledgeSearchHit {
@@ -400,4 +401,28 @@ export interface UserAdminSummary {
   user: UserProfile;
   posts: number; comments: number; reactions: number; friends: number;
   reportsAgainst: number; reportsFiled: number;
+}
+
+export interface RetrievedContextPreview {
+  chunkId: string;
+  documentId: string;
+  chunkIndex: number;
+  snippet: string;
+}
+
+export interface KnowledgeSourcePreview {
+  documentId: string;
+  title?: string | null;
+  sourceUrl?: string | null;
+}
+
+export interface BotGenerateMeta {
+  usedModel?: string | null;
+  promptTokens?: number | null;
+  completionTokens?: number | null;
+  totalTokens?: number | null;
+  latencyMs?: number | null;
+  retrievedContextCount?: number | null;
+  contexts?: RetrievedContextPreview[];
+  sources?: KnowledgeSourcePreview[];
 }
