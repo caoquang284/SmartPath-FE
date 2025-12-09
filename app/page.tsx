@@ -73,7 +73,7 @@ export default function Home() {
             Welcome to SmartPath
           </h1>
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-            Forum chuyên biệt dành cho sinh viên 
+            SmartPath giúp sinh viên UIT học tập hiệu quả bằng cách cung cấp diễn đàn hỏi–đáp, chia sẻ tài liệu, chat, và trợ lý AI hỗ trợ thông tin và kiến thức theo ngữ cảnh.
           </p>
           <div className="flex gap-4 justify-center">
             <Link href="/forum">
