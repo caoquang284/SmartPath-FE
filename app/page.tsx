@@ -6,11 +6,25 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
+import Script from 'next/script';
 import { GraduationCap, BookOpen, Users, MessageSquare, Award, TrendingUp } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
   const { profile, loading } = useAuth();
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "SmartPath",
+    "url": "https://smartpath.id.vn",
+    "description": "Nền tảng học tập thông minh cho sinh viên đại học",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://smartpath.id.vn/forum?search={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
 
   useEffect(() => {
     if (!loading && profile) {
@@ -64,6 +78,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-950 dark:via-blue-950/20 dark:to-slate-950">
+      <Script
+        id="structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto mb-16">
           <div className="inline-flex items-center justify-center p-4 bg-blue-500 rounded-2xl mb-6">
