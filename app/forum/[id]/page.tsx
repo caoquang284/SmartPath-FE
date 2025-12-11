@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -87,7 +87,7 @@ type QueuedImage = { id: string; file: File; preview: string };
 type QueuedDoc = { id: string; file: File };
 const uid = () => Math.random().toString(36).slice(2);
 
-export default function PostDetailPage() {
+function PostDetailContent() {
   const { id: postId } = useParams<{ id: string }>();
   const router = useRouter();
   const { profile } = useAuth();
@@ -1019,4 +1019,12 @@ export default function PostDetailPage() {
       </Card>
     </div>
   )
+}
+
+export default function PostDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <PostDetailContent />
+    </Suspense>
+  );
 }

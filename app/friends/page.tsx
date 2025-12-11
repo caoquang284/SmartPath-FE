@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
@@ -34,7 +34,7 @@ type PendingRequestItem = {
   createdAt?: string;
 };
 
-export default function FriendsPage() {
+function FriendsPageContent() {
   const { toast } = useToast();
   const { profile } = useAuth();
   const searchParams = useSearchParams();
@@ -620,5 +620,28 @@ export default function FriendsPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function FriendsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <Navbar />
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold">Friends</h1>
+                <p className="text-muted-foreground">Loading...</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    }>
+      <FriendsPageContent />
+    </Suspense>
   );
 }
