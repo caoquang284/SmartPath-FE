@@ -6,10 +6,13 @@ import { useAccessToken } from './use-access-token';
 export function useChatHub(opts?: {
   hubUrl?: string;
   onNewMessage?: (m: any) => void;
+  onNewMessageNotification?: (n: any) => void;
   onMessageRead?: (e: any) => void;
+  onMessageStatusUpdated?: (e: any) => void;
+  onMessagesReadInChat?: (e: any) => void;
   selectedChatId?: string | undefined;
 }) {
-  const { hubUrl = process.env.NEXT_PUBLIC_HUB_URL ?? '', onNewMessage, onMessageRead, selectedChatId } = opts || {};
+  const { hubUrl = process.env.NEXT_PUBLIC_HUB_URL ?? '', onNewMessage, onNewMessageNotification, onMessageRead, onMessageStatusUpdated, onMessagesReadInChat, selectedChatId } = opts || {};
   const { tokenRef } = useAccessToken();
   const [connected, setConnected] = useState(false);
   const connRef = useRef<ReturnType<typeof getHubConnection> | null>(null);
@@ -23,7 +26,16 @@ export function useChatHub(opts?: {
     const conn = getHubConnection(hubUrl, tokenGetter);
     connRef.current = conn;
 
-    setHandlersOnce(conn, { onNewMessage, onMessageRead });
+    // Only set handlers once globally, not on every render
+    if (!lifecycleSetRef.current) {
+      setHandlersOnce(conn, {
+        onNewMessage,
+        onNewMessageNotification,
+        onMessageRead,
+        onMessageStatusUpdated,
+        onMessagesReadInChat
+      });
+    }
 
     // ensure start
     ensureStarted(conn)
@@ -42,7 +54,8 @@ export function useChatHub(opts?: {
 
         // Đăng ký rejoin sau khi reconnect (chỉ 1 lần)
         if (!lifecycleSetRef.current) {
-          (conn as any).onreconnected?.(async () => {
+          conn.onreconnected(async (connectionId) => {
+            console.log('[SignalR] reconnected with connectionId:', connectionId);
             try {
               if (currentChatRef.current) {
                 await invokeSafe(conn, 'JoinChat', currentChatRef.current);
@@ -52,8 +65,14 @@ export function useChatHub(opts?: {
               console.error('[SignalR] rejoin after reconnect failed', e);
             }
           });
-          (conn as any).onreconnecting?.(() => setConnected(false));
-          (conn as any).onclose?.(() => setConnected(false));
+          conn.onreconnecting(err => {
+            console.warn('[SignalR] reconnecting:', err);
+            setConnected(false);
+          });
+          conn.onclose(err => {
+            console.error('[SignalR] closed:', err);
+            setConnected(false);
+          });
           lifecycleSetRef.current = true;
         }
       })
@@ -62,7 +81,7 @@ export function useChatHub(opts?: {
     return () => {
       // không stop ở đây nếu muốn giữ kết nối global xuyên trang
     };
-  }, [hubUrl, tokenGetter, onNewMessage, onMessageRead]);
+  }, [hubUrl, tokenGetter, onNewMessage, onNewMessageNotification, onMessageRead, onMessageStatusUpdated, onMessagesReadInChat]);
 
   // Join/Leave khi selectedChatId thay đổi
   useEffect(() => {
@@ -99,5 +118,10 @@ export function useChatHub(opts?: {
     if (currentChatRef.current === chatId) currentChatRef.current = undefined;
   }, []);
 
-  return { connected, join, leave };
+  const markMessagesRead = useCallback(async (chatId: string) => {
+    if (!connRef.current) return;
+    await invokeSafe(connRef.current, 'MarkMessagesRead', chatId);
+  }, []);
+
+  return { connected, join, leave, markMessagesRead, connection: connRef.current };
 }

@@ -1,7 +1,7 @@
 'use client';
 import * as signalR from '@microsoft/signalr';
 
-type NewMessageEvent = {
+export type NewMessageEvent = {
   id: string;
   chatId: string;
   content: string;
@@ -11,10 +11,31 @@ type NewMessageEvent = {
   createdAt: string;
 };
 
-type MessageReadEvent = {
+export type NewMessageNotificationEvent = {
+  chatId: string;
+  messageId: string;
+  senderUsername: string;
+  content: string; // truncated to 50 chars
+  createdAt: string;
+};
+
+export type MessageReadEvent = {
   messageId: string;
   chatId: string;
   readerId: string;
+  readAt: string;
+};
+
+export type MessageStatusUpdatedEvent = {
+  messageId: string;
+  isRead: boolean;
+  readerId: string;
+};
+
+export type MessagesReadInChatEvent = {
+  chatId: string;
+  readerId: string;
+  readAt: string;
 };
 
 const g = globalThis as unknown as {
@@ -90,12 +111,26 @@ export function setHandlersOnce(
   conn: signalR.HubConnection,
   handlers: {
     onNewMessage?: (m: NewMessageEvent) => void;
+    onNewMessageNotification?: (n: NewMessageNotificationEvent) => void;
     onMessageRead?: (e: MessageReadEvent) => void;
+    onMessageStatusUpdated?: (e: MessageStatusUpdatedEvent) => void;
+    onMessagesReadInChat?: (e: MessagesReadInChatEvent) => void;
   }
 ) {
-  if (g.__chatHandlersSet) return;
+  // Remove existing handlers to prevent duplicates
+  conn.off('NewMessage');
+  conn.off('NewMessageNotification');
+  conn.off('MessageRead');
+  conn.off('MessageStatusUpdated');
+  conn.off('MessagesReadInChat');
+
+  // Register new handlers
   if (handlers.onNewMessage) conn.on('NewMessage', handlers.onNewMessage);
+  if (handlers.onNewMessageNotification) conn.on('NewMessageNotification', handlers.onNewMessageNotification);
   if (handlers.onMessageRead) conn.on('MessageRead', handlers.onMessageRead);
+  if (handlers.onMessageStatusUpdated) conn.on('MessageStatusUpdated', handlers.onMessageStatusUpdated);
+  if (handlers.onMessagesReadInChat) conn.on('MessagesReadInChat', handlers.onMessagesReadInChat);
+
   g.__chatHandlersSet = true;
 }
 

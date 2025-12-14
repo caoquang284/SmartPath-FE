@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -31,6 +32,9 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const lastJoinedRef = useRef<string | null>(null);
 
+  // Auto-scroll hook
+  const { scrollRef, scrollToBottom, handleScroll } = useAutoScroll([selectedChat?.messages]);
+
   const {profile}=useAuth()
   if (!profile) {
     return (
@@ -54,7 +58,7 @@ export default function MessagesPage() {
     );
   }
 
-  const { connected, join, leave } = useChatHub({
+  const { connected, join, leave, markMessagesRead } = useChatHub({
     selectedChatId,
     onNewMessage: (raw) => {
       const m = {
@@ -67,15 +71,77 @@ export default function MessagesPage() {
         createdAt: raw.createdAt ?? raw.CreatedAt,
       };
 
+      // Prevent adding duplicate messages
+      const messageExists = (messages: Message[]) => messages.some(x => x.id === m.id || (x.id.startsWith('temp-') && x.senderId === m.senderId && x.content === m.content && Math.abs(new Date(x.createdAt).getTime() - new Date(m.createdAt).getTime()) < 5000));
+
       setSelectedChat(prev => {
         if (!prev || prev.id !== m.chatId) return prev;
-        if (prev.messages?.some(x => x.id === m.id)) return prev;
+        const messages = prev.messages ?? [];
+        if (messageExists(messages)) return prev;
         const appended: Message = m;
-        return { ...prev, messages: [...(prev.messages ?? []), appended] } as Chat;
+        return { ...prev, messages: [...messages, appended] } as Chat;
       });
 
+      setChats(prev => {
+        return prev.map(chat => {
+          if (chat.id === m.chatId) {
+            const messages = chat.messages ?? [];
+            if (messageExists(messages)) return chat;
+            const updatedMessages = [...messages, m].sort((a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            return { ...chat, messages: updatedMessages };
+          }
+          return chat;
+        });
+      });
+
+      // Mark as read if it's not our message and we're viewing the chat
       if (selectedChatId === m.chatId && m.senderId !== currentUser?.id) {
         messageAPI.markRead(m.id).catch(() => {});
+      }
+    },
+    onNewMessageNotification: (raw) => {
+      const notification = {
+        chatId: raw.chatId ?? raw.ChatId,
+        messageId: raw.messageId ?? raw.MessageId,
+        senderUsername: raw.senderUsername ?? raw.SenderUsername,
+        content: raw.content ?? raw.Content,
+        createdAt: raw.createdAt ?? raw.CreatedAt,
+      };
+
+      // Update chat list with new message preview
+      setChats(prev => {
+        return prev.map(chat => {
+          if (chat.id === notification.chatId) {
+            const newMessage: Message = {
+              id: notification.messageId,
+              chatId: notification.chatId,
+              content: notification.content,
+              senderId: '', // Not provided in notification
+              senderUsername: notification.senderUsername,
+              isRead: false,
+              createdAt: notification.createdAt,
+            };
+            const updatedMessages = [...(chat.messages ?? []), newMessage].sort((a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            return { ...chat, messages: updatedMessages };
+          }
+          return chat;
+        });
+      });
+
+      // Also refresh the selected chat if it's the one that received the notification
+      if (selectedChatId === notification.chatId) {
+        (async () => {
+          try {
+            const chat = await chatAPI.getById(notification.chatId);
+            setSelectedChat(chat);
+          } catch (e) {
+            console.error('Failed to refresh chat after notification:', e);
+          }
+        })();
       }
     },
     onMessageRead: (raw) => {
@@ -89,6 +155,59 @@ export default function MessagesPage() {
         if (!prev || prev.id !== e.chatId) return prev;
         const msgs = (prev.messages ?? []).map(x => x.id === e.messageId ? { ...x, isRead: true } : x);
         return { ...prev, messages: msgs } as Chat;
+      });
+
+      setChats(prev => {
+        return prev.map(chat => {
+          if (chat.id === e.chatId) {
+            const msgs = (chat.messages ?? []).map(x => x.id === e.messageId ? { ...x, isRead: true } : x);
+            return { ...chat, messages: msgs };
+          }
+          return chat;
+        });
+      });
+    },
+    onMessageStatusUpdated: (raw) => {
+      const e = {
+        messageId: raw.messageId ?? raw.MessageId,
+        isRead: raw.isRead ?? raw.IsRead,
+        readerId: raw.readerId ?? raw.ReaderId,
+      };
+
+      setSelectedChat(prev => {
+        if (!prev) return prev;
+        const msgs = (prev.messages ?? []).map(x => x.id === e.messageId ? { ...x, isRead: e.isRead } : x);
+        return { ...prev, messages: msgs } as Chat;
+      });
+
+      setChats(prev => {
+        return prev.map(chat => {
+          const msgs = (chat.messages ?? []).map(x => x.id === e.messageId ? { ...x, isRead: e.isRead } : x);
+          return { ...chat, messages: msgs };
+        });
+      });
+    },
+    onMessagesReadInChat: (raw) => {
+      const e = {
+        chatId: raw.chatId ?? raw.ChatId,
+        readerId: raw.readerId ?? raw.ReaderId,
+        readAt: raw.readAt ?? raw.ReadAt,
+      };
+
+      setSelectedChat(prev => {
+        if (!prev || prev.id !== e.chatId) return prev;
+        const msgs = (prev.messages ?? []).map(x => x.senderId !== currentUser?.id ? { ...x, isRead: true } : x);
+        return { ...prev, messages: msgs } as Chat;
+      });
+
+      setChats(prev => {
+        return prev.map(chat => {
+          if (chat.id === e.chatId) {
+            const msgs = (chat.messages ?? []).map(x => x.senderId !== currentUser?.id ? { ...x, isRead: true } : x);
+            return { ...chat, messages: msgs };
+          }
+          return chat;
+        });
       });
     }
   });
@@ -140,11 +259,44 @@ export default function MessagesPage() {
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChatId) return;
-    try {
-      const saved = await messageAPI.send({ chat_id: selectedChatId, content: messageInput.trim() });
-      setMessageInput('');
 
-      const m: Message = {
+    const tempId = `temp-${Date.now()}`;
+    const content = messageInput.trim();
+    setMessageInput('');
+
+    // Optimistic update - add message immediately
+    const optimisticMessage: Message = {
+      id: tempId,
+      chatId: selectedChatId,
+      content,
+      senderId: currentUser?.id ?? '',
+      senderUsername: currentUser?.username ?? '',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add to selected chat immediately
+    setSelectedChat(prev => {
+      if (!prev || prev.id !== selectedChatId) return prev;
+      return { ...prev, messages: [...(prev.messages ?? []), optimisticMessage] } as Chat;
+    });
+
+    // Add to chat list
+    setChats(prev => {
+      return prev.map(chat => {
+        if (chat.id === selectedChatId) {
+          const updatedMessages = [...(chat.messages ?? []), optimisticMessage];
+          return { ...chat, messages: updatedMessages };
+        }
+        return chat;
+      });
+    });
+
+    try {
+      const saved = await messageAPI.send({ chat_id: selectedChatId, content });
+
+      // Replace temp message with real one
+      const realMessage: Message = {
         id: (saved as any).id ?? (saved as any).Id,
         chatId: (saved as any).chatId ?? (saved as any).ChatId ?? selectedChatId,
         content: (saved as any).content ?? (saved as any).Content,
@@ -155,22 +307,68 @@ export default function MessagesPage() {
       };
 
       setSelectedChat(prev => {
-        if (!prev || prev.id !== m.chatId) return prev;
-        if (prev.messages?.some(x => x.id === m.id)) return prev;
-        return { ...prev, messages: [...(prev.messages ?? []), m] } as Chat;
+        if (!prev || prev.id !== selectedChatId) return prev;
+        const messages = prev.messages ?? [];
+        const filtered = messages.filter(m => m.id !== tempId);
+        return { ...prev, messages: [...filtered, realMessage] } as Chat;
       });
+
+      setChats(prev => {
+        return prev.map(chat => {
+          if (chat.id === selectedChatId) {
+            const messages = chat.messages ?? [];
+            const filtered = messages.filter(m => m.id !== tempId);
+            return { ...chat, messages: [...filtered, realMessage] };
+          }
+          return chat;
+        });
+      });
+
     } catch (e) {
-      console.error(e);
+      console.error('Failed to send message:', e);
+
+      // Remove optimistic message on failure
+      setSelectedChat(prev => {
+        if (!prev || prev.id !== selectedChatId) return prev;
+        const messages = prev.messages ?? [];
+        const filtered = messages.filter(m => m.id !== tempId);
+        return { ...prev, messages: filtered } as Chat;
+      });
+
+      setChats(prev => {
+        return prev.map(chat => {
+          if (chat.id === selectedChatId) {
+            const messages = chat.messages ?? [];
+            const filtered = messages.filter(m => m.id !== tempId);
+            return { ...chat, messages: filtered };
+          }
+          return chat;
+        });
+      });
+
+      // Restore message input on failure
+      setMessageInput(content);
     }
   };
 
   useEffect(() => {
     if (!selectedChat || !currentUser?.id) return;
-    const unread = (selectedChat.messages ?? []).filter(m => !m.isRead && m.senderId !== currentUser.id);
-    unread.forEach(m => messageAPI.markRead(m.id).catch(() => {}));
-  }, [selectedChat, currentUser?.id]);
+    const hasUnread = (selectedChat.messages ?? []).some(m => !m.isRead && m.senderId !== currentUser.id);
+    if (hasUnread) {
+      // Use bulk marking via API for better performance
+      messageAPI.markAllAsReadInChat(selectedChat.id).catch(() => {});
+      // Also use SignalR for real-time notification
+      markMessagesRead(selectedChat.id).catch(() => {});
+    }
+  }, [selectedChat, currentUser?.id, markMessagesRead]);
 
   const otherMember = useMemo(() => selectedChat?.otherUser ?? null, [selectedChat]);
+
+  // Calculate unread count for each chat
+  const getUnreadCount = useCallback((chat: Chat) => {
+    if (!currentUser?.id) return 0;
+    return (chat.messages ?? []).filter(m => !m.isRead && m.senderId !== currentUser.id).length;
+  }, [currentUser?.id]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -202,6 +400,7 @@ export default function MessagesPage() {
                         const lastMessage = (chat.messages ?? [])
                           .slice()
                           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                        const unreadCount = getUnreadCount(chat);
 
                         return (
                           <button
@@ -212,10 +411,17 @@ export default function MessagesPage() {
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarImage src={avatarUrl} alt={title} />
-                                <AvatarFallback>{avatarFallback}</AvatarFallback>
-                              </Avatar>
+                              <div className="relative">
+                                <Avatar>
+                                  <AvatarImage src={avatarUrl} alt={title} />
+                                  <AvatarFallback>{avatarFallback}</AvatarFallback>
+                                </Avatar>
+                                {unreadCount > 0 && (
+                                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                  </div>
+                                )}
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium truncate">{title}</div>
                                 <div className="text-sm text-muted-foreground truncate">
@@ -250,7 +456,11 @@ export default function MessagesPage() {
 
                     {/* Quan trọng: flex-1 + min-h-0 để phần này cuộn, không đẩy card */}
                     <ScrollArea className="flex-1 min-h-0 p-4 overflow-y-auto">
-                      <div className="space-y-4">
+                      <div
+                        ref={scrollRef}
+                        onScroll={handleScroll}
+                        className="space-y-4"
+                      >
                         {(selectedChat.messages ?? []).map((message) => {
                           const isOwn = message.senderId === currentUser?.id;
                           return (
@@ -267,9 +477,27 @@ export default function MessagesPage() {
                                   <div className={`rounded-lg p-3 ${isOwn ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-900'}`}>
                                     <p className="text-sm break-words whitespace-pre-wrap">{message.content}</p>
                                   </div>
-                                  <div className={`text-xs text-muted-foreground mt-1 ${isOwn ? 'text-right' : ''}`}>
+                                  <div className={`text-xs text-muted-foreground mt-1 flex items-center gap-1 ${isOwn ? 'justify-end' : ''}`}>
                                     {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
-                                    {isOwn && message.isRead ? ' • Read' : ''}
+                                    {isOwn && (
+                                      <span className={`inline-flex items-center gap-1 ${message.isRead ? 'text-blue-500' : 'text-gray-400'}`}>
+                                        {message.isRead ? (
+                                          <>
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                            Read
+                                          </>
+                                        ) : (
+                                          <>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Sent
+                                          </>
+                                        )}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
