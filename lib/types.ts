@@ -426,3 +426,96 @@ export interface BotGenerateMeta {
   contexts?: RetrievedContextPreview[];
   sources?: KnowledgeSourcePreview[];
 }
+
+// Study Material Types
+export enum MaterialStatus {
+  Pending = 0,
+  Accepted = 1,
+  Rejected = 2
+}
+
+export enum SourceType {
+  File = 1,
+  Url = 2
+}
+
+export interface MaterialCategory {
+  id: string;
+  name: string;
+  slug: string;
+  path: string;
+  level: number;
+  sortOrder: number;
+  isActive: boolean;
+  children: MaterialCategory[];
+}
+
+export interface StudyMaterialResponse {
+  id: string;
+  categoryId: string;
+  categoryPath: string;
+  title: string;
+  description: string | null;
+  sourceType: SourceType;
+  fileUrl: string | null;
+  sourceUrl: string | null;
+  status: MaterialStatus;
+  rejectReason: string | null;
+  aiCategoryMatch: boolean | null;
+  aiConfidence: number | null;
+  aiSuggestedCategoryId: string | null;
+  aiReason: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface StudyMaterialCreateRequest {
+  categoryId: string;
+  title: string;
+  description?: string;
+  sourceType: SourceType;
+  sourceUrl?: string;
+}
+
+export interface StudyMaterialSearchRequest {
+  categoryId?: string;
+  status?: MaterialStatus;
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StudyMaterialSearchResponse extends PageResult<StudyMaterialResponse> {}
+
+export interface StudyMaterialReviewRequest {
+  decision: 'Accepted' | 'Rejected';
+  reason?: string;
+}
+
+export type MaterialPageResult<T> = {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: T[];
+};
+
+// Category request types for backend compatibility
+export interface MaterialCategoryCreateRequest {
+  name: string;
+  slug?: string;
+  parentId?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface MaterialCategoryUpdateRequest {
+  name?: string;
+  slug?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface MoveCategoryRequest {
+  newParentId?: string;
+  newSortOrder?: number;
+}

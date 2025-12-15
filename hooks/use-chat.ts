@@ -17,7 +17,7 @@ export function useChatHub(opts?: {
   const [connected, setConnected] = useState(false);
   const connRef = useRef<ReturnType<typeof getHubConnection> | null>(null);
   const currentChatRef = useRef<string | undefined>(undefined);
-  const lifecycleSetRef = useRef(false); // đảm bảo chỉ set 1 lần/instance
+  const lifecycleSetRef = useRef(false);
 
   const tokenGetter = useCallback(() => tokenRef.current, [tokenRef]);
 
@@ -26,7 +26,6 @@ export function useChatHub(opts?: {
     const conn = getHubConnection(hubUrl, tokenGetter);
     connRef.current = conn;
 
-    // Only set handlers once globally, not on every render
     if (!lifecycleSetRef.current) {
       setHandlersOnce(conn, {
         onNewMessage,
@@ -37,13 +36,11 @@ export function useChatHub(opts?: {
       });
     }
 
-    // ensure start
     ensureStarted(conn)
       .then(async () => {
         setConnected(true);
         stopOnUnload(conn);
 
-        // Re-join chat đã chọn (nếu có)
         if (currentChatRef.current) {
           try {
             await invokeSafe(conn, 'JoinChat', currentChatRef.current);
@@ -83,7 +80,6 @@ export function useChatHub(opts?: {
     };
   }, [hubUrl, tokenGetter, onNewMessage, onNewMessageNotification, onMessageRead, onMessageStatusUpdated, onMessagesReadInChat]);
 
-  // Join/Leave khi selectedChatId thay đổi
   useEffect(() => {
     if (!connRef.current) return;
     const conn = connRef.current;
@@ -93,7 +89,6 @@ export function useChatHub(opts?: {
     (async () => {
       try {
         if (prev && prev !== next) {
-          // Leave không cần Connected tuyệt đối, nhưng an toàn thì vẫn chờ
           await invokeSafe(conn, 'LeaveChat', prev);
         }
         if (next) {

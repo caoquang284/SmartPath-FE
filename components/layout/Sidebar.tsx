@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   FileText,
   UsersIcon,
-  Database
+  Database,
+  FolderTree
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -45,7 +46,8 @@ export function Sidebar() {
 
   const adminLinks = [
     { href: '/admin/badge-moderation', icon: ShieldCheck, label: 'Quản trị thành tựu' },
-    { href: '/admin/material-moderation', icon: FileText, label: 'Quản trị tài liệu' },
+    { href: '/admin/materials', icon: FileText, label: 'Quản trị tài liệu' },
+    { href: '/admin/categories', icon: FolderTree, label: 'Quản trị danh mục' },
     { href: '/admin/user-moderation', icon: UsersIcon, label: 'Quản trị người dùng' },
     { href: '/admin/knowledge-moderation', icon: Database, label: 'Quản trị dataset chatbot' },
   ];

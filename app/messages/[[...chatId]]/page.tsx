@@ -32,7 +32,6 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const lastJoinedRef = useRef<string | null>(null);
 
-  // Auto-scroll hook
   const { scrollRef, scrollToBottom, handleScroll } = useAutoScroll([selectedChat?.messages]);
 
   const {profile}=useAuth()
@@ -71,7 +70,6 @@ export default function MessagesPage() {
         createdAt: raw.createdAt ?? raw.CreatedAt,
       };
 
-      // Prevent adding duplicate messages
       const messageExists = (messages: Message[]) => messages.some(x => x.id === m.id || (x.id.startsWith('temp-') && x.senderId === m.senderId && x.content === m.content && Math.abs(new Date(x.createdAt).getTime() - new Date(m.createdAt).getTime()) < 5000));
 
       setSelectedChat(prev => {
