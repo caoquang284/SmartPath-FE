@@ -90,7 +90,7 @@ function RecentMaterials({ materials }: { materials: StudyMaterialResponse[] }) 
             </p>
           ) : (
             materials.map((material) => {
-              const status = statusConfig[material.status];
+              const status = statusConfig[material.status] || statusConfig[MaterialStatus.Pending];
               const StatusIcon = status.icon;
 
               return (

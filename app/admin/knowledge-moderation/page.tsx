@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/layout/Navbar';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -349,22 +347,17 @@ export default function KnowledgeModerationPage() {
   }, [previewItems]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navbar />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Knowledge Moderation</h1>
-            </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Knowledge Moderation</h1>
+      </div>
 
-            {/* Ingest */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ingest dữ liệu</CardTitle>
-              </CardHeader>
-              <CardContent>
+      {/* Ingest */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ingest dữ liệu</CardTitle>
+        </CardHeader>
+        <CardContent>
                 <Tabs defaultValue="text">
                   <TabsList>
                     <TabsTrigger value="text">Text</TabsTrigger>
@@ -570,10 +563,7 @@ export default function KnowledgeModerationPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </main>
-      </div>
-
+  
       {/* Preview dialog: tài liệu mới (metadata) + tài liệu liên quan hiện có */}
       <Dialog open={!!previewItems} onOpenChange={(open) => !open && resetPreviewState()}>
         <DialogContent className="max-w-5xl">

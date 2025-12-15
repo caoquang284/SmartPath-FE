@@ -57,10 +57,8 @@ function CategorySelector({
           onClick={() => onCategorySelect(category.id)}
         >
           {hasChildren && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 w-5 p-0"
+            <div
+              className="h-5 w-5 flex items-center justify-center cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleExpand(category.id);
@@ -71,7 +69,7 @@ function CategorySelector({
               ) : (
                 <ChevronRight className="h-3 w-3" />
               )}
-            </Button>
+            </div>
           )}
           <span className="text-sm">{category.name}</span>
         </div>
@@ -264,9 +262,9 @@ export default function MaterialUploadPage() {
           <p className="text-muted-foreground mb-4">
             Bạn cần đăng nhập để đăng tài liệu học tập
           </p>
-          <Link href="/auth/login?redirect=/materials/upload">
-            <Button>Đăng nhập</Button>
-          </Link>
+          <Button asChild>
+            <Link href="/auth/login?redirect=/materials/upload">Đăng nhập</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -279,7 +277,7 @@ export default function MaterialUploadPage() {
       2: { label: 'Bị từ chối', icon: XCircle, color: 'text-red-600' }
     };
 
-    const status = statusConfig[uploadResult.status as keyof typeof statusConfig];
+    const status = statusConfig[uploadResult.status as keyof typeof statusConfig] || statusConfig[0];
     const StatusIcon = status.icon;
 
     return (
@@ -314,16 +312,12 @@ export default function MaterialUploadPage() {
           </div>
 
           <div className="flex gap-2">
-            <Link href="/materials/my-materials">
-              <Button variant="outline" className="flex-1">
-                Xem tài liệu của tôi
-              </Button>
-            </Link>
-            <Link href="/materials">
-              <Button variant="outline" className="flex-1">
-                Khám phá thêm
-              </Button>
-            </Link>
+            <Button asChild variant="outline" className="flex-1">
+              <Link href="/materials/my-materials">Xem tài liệu của tôi</Link>
+            </Button>
+            <Button asChild variant="outline" className="flex-1">
+              <Link href="/materials">Khám phá thêm</Link>
+            </Button>
             <Button
               onClick={() => {
                 setUploadResult(null);
@@ -513,11 +507,9 @@ export default function MaterialUploadPage() {
               <Button type="submit" disabled={loading} className="flex-1">
                 {loading ? 'Đang xử lý...' : 'Đăng tài liệu'}
               </Button>
-              <Link href="/materials">
-                <Button type="button" variant="outline" disabled={loading}>
-                  Hủy
-                </Button>
-              </Link>
+                          <Button asChild variant="outline" disabled={loading}>
+                <Link href="/materials">Hủy</Link>
+              </Button>
             </div>
           </form>
         </CardContent>

@@ -57,7 +57,7 @@ interface MaterialCardProps {
 }
 
 function MaterialCard({ material, onReview, isReviewing }: MaterialCardProps) {
-  const status = statusConfig[material.status];
+  const status = statusConfig[material.status] || statusConfig[MaterialStatus.Pending];
   const StatusIcon = status.icon;
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewDecision, setReviewDecision] = useState<'Accepted' | 'Rejected'>('Accepted');

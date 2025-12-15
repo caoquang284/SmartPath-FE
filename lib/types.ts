@@ -465,6 +465,8 @@ export interface StudyMaterialResponse {
   aiConfidence: number | null;
   aiSuggestedCategoryId: string | null;
   aiReason: string | null;
+  averageRating: number;
+  totalRatings: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -490,6 +492,40 @@ export interface StudyMaterialSearchResponse extends PageResult<StudyMaterialRes
 export interface StudyMaterialReviewRequest {
   decision: 'Accepted' | 'Rejected';
   reason?: string;
+}
+
+// Study Material Rating Types
+export interface StudyMaterialRatingRequest {
+  rating: number; // 1-5
+  comment?: string;
+}
+
+export interface StudyMaterialRatingResponse {
+  id: string;
+  materialId: string;
+  userId: string;
+  user: {
+    id: string;
+    username: string;
+    fullName: string;
+    avatarUrl?: string | null;
+  };
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudyMaterialRatingStats {
+  averageRating: number;
+  totalRatings: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
 }
 
 export type MaterialPageResult<T> = {
@@ -518,4 +554,281 @@ export interface MaterialCategoryUpdateRequest {
 export interface MoveCategoryRequest {
   newParentId?: string;
   newSortOrder?: number;
+}
+
+// Search Engine Types
+
+export interface SearchRequest {
+  query: string;
+  searchType?: 'All' | 'Posts' | 'StudyMaterials';
+  categoryIds?: string[];
+  materialCategoryIds?: string[];
+  isQuestion?: boolean | null;
+  includeSemanticSearch?: boolean;
+  includeKeywordSearch?: boolean;
+  sortBy?: 'relevance' | 'created' | 'updated' | 'views' | 'likes' | 'rating';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+  fromDate?: string; // ISO date
+  toDate?: string; // ISO date
+  tags?: string[];
+}
+
+export interface PostSearchResult {
+  id: string;
+  title: string;
+  content: string;
+  summary?: string | null;
+  isQuestion: boolean;
+  isSolved: boolean;
+  viewCount: number;
+  likeCount: number;
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatar?: string | null;
+  };
+  categories: PostSearchCategory[];
+  tags: string[];
+  relevanceScore: number;
+  matchType: 'Exact' | 'Semantic' | 'Keyword' | 'Fuzzy';
+  highlightedTitle: string[];
+  highlightedContent: string[];
+}
+
+export interface PostSearchCategory {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface StudyMaterialSearchResult {
+  id: string;
+  title: string;
+  description: string;
+  summary?: string | null;
+  type: string;
+  url: string;
+  downloadUrl?: string;
+  viewCount: number;
+  downloadCount: number;
+  averageRating: number;
+  totalRatings: number;
+  createdAt: string;
+  updatedAt: string;
+  uploader: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatar?: string | null;
+  };
+  category: MaterialSearchCategory;
+  tags: string[];
+  relevanceScore: number;
+  matchType: 'Exact' | 'Semantic' | 'Keyword' | 'Fuzzy';
+  highlightedTitle: string[];
+  highlightedDescription: string[];
+  isApproved: boolean;
+  aiConfidence?: number | null;
+}
+
+export interface MaterialSearchCategory {
+  id: string;
+  name: string;
+  path: string;
+}
+
+export interface SearchFacets {
+  categories: CategoryFacet[];
+  materialCategories: MaterialCategoryFacet[];
+  types: TypeFacet[];
+  tags: TagFacet[];
+  years: YearFacet[];
+}
+
+export interface CategoryFacet {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+export interface MaterialCategoryFacet {
+  id: string;
+  name: string;
+  path: string;
+  level: number;
+  count: number;
+  children?: MaterialCategoryFacet[];
+}
+
+export interface TypeFacet {
+  name: string;
+  count: number;
+}
+
+export interface TagFacet {
+  name: string;
+  count: number;
+}
+
+export interface YearFacet {
+  name: string;
+  count: number;
+}
+
+export interface SearchSuggestions {
+  correctedQuery?: string;
+  relatedQueries: string[];
+  didYouMean: string[];
+}
+
+export interface SearchResponse {
+  posts: PostSearchResult[];
+  studyMaterials: StudyMaterialSearchResult[];
+  totalPosts: number;
+  totalStudyMaterials: number;
+  totalResults: number;
+  facets: SearchFacets;
+  suggestions: SearchSuggestions;
+  queryTime: string;
+}
+
+// Search Suggestion Types
+export interface PostSuggestion {
+  id: string;
+  title: string;
+  isQuestion: boolean;
+  categories: string[];
+}
+
+export interface MaterialSuggestion {
+  id: string;
+  title: string;
+  type: string;
+  category: string;
+}
+
+// Search Analytics (Admin)
+export interface SearchAnalytics {
+  totalQueries: number;
+  uniqueQueries: number;
+  topQueries: string[];
+  averageQueryLength: number;
+  queryLengthDistribution: number[];
+  topResultTypes: ResultTypeStat[];
+  averageResultsPerPage: number;
+}
+
+export interface ResultTypeStat {
+  type: 'Posts' | 'StudyMaterials';
+  count: number;
+  percentage: number;
+}
+
+// Enhanced Post Types for Search Compatibility
+export interface EnhancedPostResponse extends PostResponseDto {
+  summary?: string | null;
+  isSolved?: boolean;
+  viewCount?: number;
+  author?: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatar?: string | null;
+  };
+  categories?: PostSearchCategory[];
+  tags?: string[];
+  relevanceScore?: number;
+  matchType?: 'Exact' | 'Semantic' | 'Keyword' | 'Fuzzy';
+  highlightedTitle?: string[];
+  highlightedContent?: string[];
+}
+
+// Enhanced Study Material Types for Search Compatibility
+export interface EnhancedStudyMaterialResponse extends StudyMaterialResponse {
+  summary?: string | null;
+  type: string;
+  url: string;
+  downloadUrl?: string;
+  viewCount?: number;
+  downloadCount?: number;
+  totalRatings?: number;
+  uploader?: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatar?: string | null;
+  };
+  category?: MaterialSearchCategory;
+  tags?: string[];
+  relevanceScore?: number;
+  matchType?: 'Exact' | 'Semantic' | 'Keyword' | 'Fuzzy';
+  highlightedTitle?: string[];
+  highlightedDescription?: string[];
+  isApproved?: boolean;
+  aiConfidence?: number | null;
+}
+
+// Pagination Response for Search
+export interface SearchPaginationResponse<T> {
+  items: T[];
+  totalCount: number;
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  success: boolean;
+}
+
+export interface ApiError {
+  error: string;
+  message: string;
+  code: number;
+}
+
+// SignalR Event Types
+export interface NewMessageEvent {
+  id: string;
+  chatId: string;
+  content: string;
+  senderId: string;
+  senderUsername: string;
+  senderDisplayName: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
+export interface MessageReadEvent {
+  messageId: string;
+  chatId: string;
+  userId: string;
+  readAt: string;
+}
+
+export interface NewMessageNotification {
+  id: string;
+  chatId: string;
+  senderId: string;
+  senderUsername: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface MessagesReadInChatEvent {
+  chatId: string;
+  userId: string;
+  readAt: string;
 }

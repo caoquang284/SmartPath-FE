@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { materialCategoryAPI, studyMaterialAPI } from '@/lib/api/studyMaterialAPI';
-import { MaterialCategory, StudyMaterialResponse, MaterialCategoryCreateRequest, MaterialCategoryUpdateRequest } from '@/lib/types';
+import { MaterialCategory, StudyMaterialResponse, MaterialCategoryCreateRequest, MaterialCategoryUpdateRequest, SourceType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -349,7 +349,7 @@ function CategoryDetail({ category, onClose }: CategoryDetailProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{material.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {material.sourceType === 1 ? 'Tệp' : 'URL'} • {new Date(material.createdAt).toLocaleDateString()}
+                      {material.sourceType === SourceType.File ? 'Tệp' : 'URL'} • {new Date(material.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <Link href={`/materials/${material.id}`}>

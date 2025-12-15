@@ -54,7 +54,7 @@ interface MaterialCardProps {
 }
 
 function MaterialCard({ material }: MaterialCardProps) {
-  const status = statusConfig[material.status];
+  const status = statusConfig[material.status] || statusConfig[MaterialStatus.Pending];
   const StatusIcon = status.icon;
 
   return (

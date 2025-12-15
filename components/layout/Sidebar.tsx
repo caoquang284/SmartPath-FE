@@ -19,7 +19,9 @@ import {
   FileText,
   UsersIcon,
   Database,
-  FolderTree
+  FolderTree,
+  Search,
+  Folder
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -30,7 +32,9 @@ export function Sidebar() {
 
   const mainLinks = [
     { href: '/forum', icon: Home, label: 'Trang chủ' },
+    { href: '/search', icon: Search, label: 'Tìm kiếm' },
     { href: '/materials', icon: BookOpen, label: 'Tài liệu' },
+    { href: '/materials/my-materials', icon: Folder, label: 'Tài liệu của tôi' },
   ];
 
   const socialLinks = [

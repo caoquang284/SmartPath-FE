@@ -221,8 +221,8 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             {!isGuest ? (
               <>
-                {/* Search */}
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" title="Search">
+                {/* Search Button */}
+                <Button variant="ghost" size="icon" title="Search" onClick={() => router.push('/search')}>
                   <Search className="h-5 w-5" />
                 </Button>
 

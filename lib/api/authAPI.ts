@@ -45,7 +45,7 @@ export const authAPI = {
   },
 
   login: async (payload: LoginRequest) => {
-    const res = await fetchWrapper.post<AuthResponse>("/auth/login", payload, false);
+    const res = await fetchWrapper.post<AuthResponse>(`/auth/login`, payload, false);
 
     if (res?.accessToken && res?.refreshToken && res?.currentUserId) {
       localStorage.setItem("access_token", res.accessToken);
@@ -67,12 +67,49 @@ export const authAPI = {
     return res;
   },
 
-  register: async (payload: RegisterRequest) => {
-    const res = await fetchWrapper.post<AuthResponse>("/auth/register", payload, false);
+  // Register user with all required fields according to backend spec
+  register: async (payload: {
+    email: string;
+    password: string;
+    username: string;
+    fullName: string;
+    phoneNumber?: string;
+    major?: string;
+    faculty?: string;
+    yearOfStudy?: number;
+    bio?: string;
+  }) => {
+    const res = await fetchWrapper.post<AuthResponse>(`/auth/register`, payload, false);
 
     if (res?.accessToken && res?.refreshToken) {
       localStorage.setItem("access_token", res.accessToken);
       localStorage.setItem("refresh_token", res.refreshToken);
+      localStorage.setItem("currentUserId", res.currentUserId);
+
+      const decoded = decodeJWT(res.accessToken);
+      if (decoded) {
+        localStorage.setItem(
+          "user_info",
+          JSON.stringify({
+            id: decoded.sub,
+            email: decoded.email,
+            role: decoded.role,
+          })
+        );
+      }
+    }
+
+    return res;
+  },
+
+  // Legacy register function for backward compatibility
+  registerLegacy: async (payload: RegisterRequest) => {
+    const res = await fetchWrapper.post<AuthResponse>(`/auth/register`, payload, false);
+
+    if (res?.accessToken && res?.refreshToken) {
+      localStorage.setItem("access_token", res.accessToken);
+      localStorage.setItem("refresh_token", res.refreshToken);
+      localStorage.setItem("currentUserId", res.currentUserId);
 
       const decoded = decodeJWT(res.accessToken);
       if (decoded) {
@@ -95,7 +132,7 @@ export const authAPI = {
     if (!refreshToken) throw new Error("No refresh token found.");
 
     const res = await fetchWrapper.post<AuthResponse>(
-      "/auth/refresh",
+      `/auth/refresh`,
       { refreshToken },
       false
     );
@@ -118,9 +155,27 @@ export const authAPI = {
     return res;
   },
 
+  // Get current user information
+  getCurrentUser: async () => {
+    return fetchWrapper.get(`/auth/me`);
+  },
+
+  // Update user profile
+  updateProfile: async (profileData: {
+    fullName?: string;
+    bio?: string;
+    major?: string;
+    faculty?: string;
+    yearOfStudy?: number;
+    phoneNumber?: string;
+  }) => {
+    return fetchWrapper.put(`/auth/profile`, profileData);
+  },
+
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    localStorage.removeItem("currentUserId");
     localStorage.removeItem("user_info");
   },
 
@@ -131,7 +186,24 @@ export const authAPI = {
     return true;
   },
 
-  getToken: () => localStorage.getItem("access_token")
+  getToken: () => localStorage.getItem("access_token"),
+
+  // Get user info from localStorage
+  getUserInfo: () => {
+    const userInfo = localStorage.getItem("user_info");
+    return userInfo ? JSON.parse(userInfo) : null;
+  },
+
+  // Get current user ID
+  getCurrentUserId: () => {
+    return localStorage.getItem("currentUserId");
+  },
+
+  // Check if user is admin
+  isAdmin: (): boolean => {
+    const userInfo = authAPI.getUserInfo();
+    return userInfo?.role === 'Admin' || userInfo?.role === 'admin';
+  }
 };
 
 export default authAPI;

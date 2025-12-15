@@ -7,6 +7,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { studyMaterialAPI } from '@/lib/api/studyMaterialAPI';
 import { StudyMaterialResponse, MaterialStatus, SourceType } from '@/lib/types';
+import { RatingDisplay } from '@/components/rating/RatingDisplay';
+import { RatingForm } from '@/components/rating/RatingForm';
+import { RatingList } from '@/components/rating/RatingList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +27,9 @@ import {
   Download,
   Share2,
   User,
-  Bot
+  Bot,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -96,6 +101,7 @@ export default function MaterialDetailPage() {
   const [material, setMaterial] = useState<StudyMaterialResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ratingKey, setRatingKey] = useState(0); // Force re-render of rating components
 
   useEffect(() => {
     const fetchMaterial = async () => {
@@ -148,6 +154,18 @@ export default function MaterialDetailPage() {
     }
   };
 
+  const handleRatingUpdate = () => {
+    // Force re-render of rating components and refresh material data
+    setRatingKey(prev => prev + 1);
+    if (id && typeof id === 'string') {
+      studyMaterialAPI.getById(id).then(data => {
+        setMaterial(data);
+      }).catch(error => {
+        console.error('Failed to refresh material:', error);
+      });
+    }
+  };
+
   if (loading) {
     return <MaterialDetailSkeleton />;
   }
@@ -176,7 +194,7 @@ export default function MaterialDetailPage() {
     );
   }
 
-  const status = statusConfig[material.status];
+  const status = statusConfig[material.status] || statusConfig[MaterialStatus.Pending];
   const StatusIcon = status.icon;
 
   return (
@@ -241,6 +259,17 @@ export default function MaterialDetailPage() {
               </span>
             </div>
 
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Đánh giá:</span>
+              <span>
+                {material.totalRatings > 0
+                  ? `${material.averageRating.toFixed(1)}/5 (${material.totalRatings} đánh giá)`
+                  : 'Chưa có đánh giá'
+                }
+              </span>
+            </div>
+
             {material.aiConfidence && (
               <div className="flex items-center gap-2">
                 <Bot className="h-4 w-4 text-muted-foreground" />
@@ -275,19 +304,19 @@ export default function MaterialDetailPage() {
           {material.status === MaterialStatus.Accepted && (
             <div className="flex flex-wrap gap-3 pt-4 border-t">
               {material.sourceType === SourceType.File ? (
-                <Link href={material.fileUrl || '#'} target="_blank" rel="noopener noreferrer">
-                  <Button>
+                <Button asChild>
+                  <Link href={material.fileUrl || '#'} target="_blank" rel="noopener noreferrer">
                     <Download className="h-4 w-4 mr-2" />
                     Tải xuống tài liệu
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               ) : (
-                <Link href={material.sourceUrl || '#'} target="_blank" rel="noopener noreferrer">
-                  <Button>
+                <Button asChild>
+                  <Link href={material.sourceUrl || '#'} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Mở liên kết
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               )}
 
               <Button variant="outline" onClick={handleShare}>
@@ -310,6 +339,28 @@ export default function MaterialDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Rating Section */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <RatingDisplay materialId={id as string} />
+        </div>
+        <div className="lg:col-span-2">
+          <RatingForm
+            materialId={id as string}
+            materialTitle={material.title}
+            onRatingUpdate={handleRatingUpdate}
+          />
+        </div>
+      </div>
+
+      {/* Ratings List Section */}
+      <div className="mt-8">
+        <RatingList
+          key={`rating-list-${ratingKey}`}
+          materialId={id as string}
+        />
+      </div>
+
       {/* Related Materials Section (Placeholder) */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Tài liệu liên quan</h2>
@@ -319,9 +370,9 @@ export default function MaterialDetailPage() {
             <p className="text-muted-foreground">
               Tính năng tài liệu liên quan sẽ được cập nhật sớm
             </p>
-            <Link href="/materials" className="mt-4 inline-block">
-              <Button variant="outline">Khám phá thêm tài liệu</Button>
-            </Link>
+            <Button asChild variant="outline" className="mt-4">
+              <Link href="/materials">Khám phá thêm tài liệu</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
