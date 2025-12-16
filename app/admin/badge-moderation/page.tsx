@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -196,12 +194,8 @@ export default function AdminBadgesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navbar />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-          <div className="space-y-6">
+    <>
+      <div className="space-y-6">
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -434,12 +428,10 @@ export default function AdminBadgesPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </main>
-      </div>
+    </div>
 
-      {/* Create / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    {/* Create / Edit Dialog */}
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Cập nhật badge' : 'Tạo badge mới'}</DialogTitle>
@@ -494,6 +486,6 @@ export default function AdminBadgesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

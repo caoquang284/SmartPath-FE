@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Heart, ThumbsDown, Send, ImagePlus, FilePlus2, FileText, X, Trophy, Medal, Gem } from 'lucide-react';
+import { Heart, ThumbsDown, Send, ImagePlus, FilePlus2, FileText, X, Trophy, Medal, Gem, Edit, Trash2 } from 'lucide-react';
 
 import type { UIComment } from '@/lib/mappers/commentMapper';
 
@@ -32,6 +32,14 @@ interface CommentCardProps {
   canReact?: boolean;
   showChildren?: boolean;
   onPreview?: (url: string) => void;
+  canEdit?: boolean;
+  onEdit?: (id: string) => void;
+  onUpdate?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  editingComment?: string | null;
+  editCommentContent?: string;
+  setEditCommentContent?: (content: string) => void;
+  updatingComment?: boolean;
 }
 
 type PrimaryBadge = {
@@ -141,6 +149,14 @@ export function CommentCard({
   canReact = true,
   showChildren = true,
   onPreview,
+  canEdit = false,
+  onEdit,
+  onUpdate,
+  onDelete,
+  editingComment,
+  editCommentContent = '',
+  setEditCommentContent,
+  updatingComment = false,
 }: CommentCardProps) {
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -242,7 +258,39 @@ export function CommentCard({
                 </span>
               </div>
 
-              <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+              {editingComment === comment.id ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editCommentContent || ''}
+                    onChange={(e) => setEditCommentContent?.(e.target.value)}
+                    rows={3}
+                    className="w-full"
+                    placeholder="Edit comment..."
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingComment(null);
+                        setEditCommentContent?.('');
+                      }}
+                      disabled={updatingComment}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onUpdate?.(comment.id)}
+                      disabled={updatingComment || !(editCommentContent || '').trim()}
+                    >
+                      {updatingComment ? 'Updating...' : 'Update'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+              )}
 
               {(comment.images?.length || comment.documents?.length) ? (
                 <div className="mt-3 space-y-3">
@@ -293,7 +341,7 @@ export function CommentCard({
                 </div>
               ) : null}
 
-              <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                 {canReact && (
                   <button
                     type="button"
@@ -327,6 +375,28 @@ export function CommentCard({
                     className="hover:text-foreground transition"
                   >
                     Reply
+                  </button>
+                )}
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit?.(comment.id)}
+                    className="hover:text-foreground transition"
+                    title="Edit"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete?.(comment.id)}
+                    className="hover:text-red-500 transition"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
@@ -458,6 +528,14 @@ export function CommentCard({
                   canReact={canReact}
                   showChildren={showChildren}
                   onPreview={onPreview}
+                  canEdit={child.author.id === comment.author.id ? canEdit : false}
+                  onEdit={onEdit}
+                  onUpdate={onUpdate}
+                  onDelete={onDelete}
+                  editingComment={editingComment}
+                  editCommentContent={editCommentContent}
+                  setEditCommentContent={setEditCommentContent}
+                  updatingComment={updatingComment}
                 />
               ))}
             </div>

@@ -301,30 +301,34 @@ export default function MaterialDetailPage() {
           )}
 
           {/* Action Buttons */}
-          {material.status === MaterialStatus.Accepted && (
-            <div className="flex flex-wrap gap-3 pt-4 border-t">
-              {material.sourceType === SourceType.File ? (
-                <Button asChild>
-                  <Link href={material.fileUrl || '#'} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" />
-                    Tải xuống tài liệu
-                  </Link>
-                </Button>
-              ) : (
-                <Button asChild>
-                  <Link href={material.sourceUrl || '#'} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Mở liên kết
-                  </Link>
-                </Button>
-              )}
+          <div className="flex flex-wrap gap-3 pt-4 border-t">
+            {material.status === MaterialStatus.Accepted && (
+              <>
+                {material.sourceType === SourceType.File ? (
+                  <Button asChild>
+                    <Link href={material.fileUrl || '#'} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4 mr-2" />
+                      Tải xuống tài liệu
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <Link href={material.sourceUrl || '#'} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Mở liên kết
+                    </Link>
+                  </Button>
+                )}
+              </>
+            )}
 
+            {material.status === MaterialStatus.Accepted && (
               <Button variant="outline" onClick={handleShare}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Chia sẻ
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Additional Info */}
           {material.updatedAt && material.updatedAt !== material.createdAt && (
@@ -339,27 +343,31 @@ export default function MaterialDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Rating Section */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <RatingDisplay materialId={id as string} />
+      {/* Rating Section - Only show for accepted materials */}
+      {material.status === MaterialStatus.Accepted && (
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <RatingDisplay materialId={id as string} />
+          </div>
+          <div className="lg:col-span-2">
+            <RatingForm
+              materialId={id as string}
+              materialTitle={material.title}
+              onRatingUpdate={handleRatingUpdate}
+            />
+          </div>
         </div>
-        <div className="lg:col-span-2">
-          <RatingForm
+      )}
+
+      {/* Ratings List Section - Only show for accepted materials */}
+      {material.status === MaterialStatus.Accepted && (
+        <div className="mt-8">
+          <RatingList
+            key={`rating-list-${ratingKey}`}
             materialId={id as string}
-            materialTitle={material.title}
-            onRatingUpdate={handleRatingUpdate}
           />
         </div>
-      </div>
-
-      {/* Ratings List Section */}
-      <div className="mt-8">
-        <RatingList
-          key={`rating-list-${ratingKey}`}
-          materialId={id as string}
-        />
-      </div>
+      )}
 
       {/* Related Materials Section (Placeholder) */}
       <div className="mt-8">

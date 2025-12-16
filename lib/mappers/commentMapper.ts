@@ -84,6 +84,11 @@ export function mapCommentsToUITree(
   postId?: string,
   maxDepth: number = 999
 ): UIComment[] {
+  // Guard against undefined or null list
+  if (!list || !Array.isArray(list)) {
+    return [];
+  }
+
   const hasParentField = list.some(
     (c: any) => typeof (c as any).parentCommentId !== 'undefined'
   );

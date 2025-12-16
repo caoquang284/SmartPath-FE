@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   FileText,
@@ -26,7 +26,8 @@ import {
   XCircle,
   AlertCircle,
   Calendar,
-  Filter
+  Filter,
+  MessageSquare
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -79,7 +80,7 @@ function MaterialCard({ material }: MaterialCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <Badge variant="outline" className="text-xs">
               {material.categoryPath}
             </Badge>
@@ -90,11 +91,23 @@ function MaterialCard({ material }: MaterialCardProps) {
                 locale: vi,
               })}
             </span>
+            {material.totalRatings > 0 && (
+              <span className="flex items-center gap-1">
+                <MessageSquare className="h-3 w-3" />
+                {material.averageRating.toFixed(1)}/5 ({material.totalRatings})
+              </span>
+            )}
           </div>
 
           {material.status === MaterialStatus.Rejected && material.rejectReason && (
             <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
               <strong>Lý do từ chối:</strong> {material.rejectReason}
+            </div>
+          )}
+
+          {material.status === MaterialStatus.Pending && (
+            <div className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
+              <strong>Đang chờ duyệt:</strong> Tài liệu đang được quản trị viên xem xét. Người dùng có thể đánh giá tài liệu này.
             </div>
           )}
 
@@ -191,11 +204,13 @@ export default function MyMaterialsPage() {
   const fetchMaterials = async (status?: number) => {
     setLoading(true);
     try {
-      const response = await studyMaterialAPI.getMine(
-        status,
-        currentPage,
+      // Convert numeric status to enum value for API
+      const statusValue = status === undefined ? undefined : status as 0 | 1 | 2;
+      const response = await studyMaterialAPI.getMine({
+        status: statusValue,
+        page: currentPage,
         pageSize
-      );
+      });
 
       setMaterials(response.items);
       setTotalPages(Math.ceil(response.total / pageSize));
@@ -391,7 +406,7 @@ export default function MyMaterialsPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center">
-              <Pagination
+              <PaginationControls
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}

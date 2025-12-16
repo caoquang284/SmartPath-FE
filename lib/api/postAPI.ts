@@ -60,6 +60,17 @@ export const postAPI = {
   // Get post categories
   getCategories: async (): Promise<{ id: string; name: string }[]> => {
     return fetchWrapper.get(`/post/categories`);
+  },
+
+  // Get recommended posts
+  getRecommendations: async (limit?: number): Promise<PostResponseDto[]> => {
+    const queryParams = new URLSearchParams();
+    if (limit) queryParams.append('limit', limit.toString());
+
+    const queryString = queryParams.toString();
+    const url = `/post/recommendations${queryString ? `?${queryString}` : ''}`;
+
+    return fetchWrapper.get<PostResponseDto[]>(url);
   }
 };
 

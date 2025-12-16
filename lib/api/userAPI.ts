@@ -1,5 +1,5 @@
 import { fetchWrapper } from "@/lib/fetchWrapper";
-import type { UserProfile, UserRequestDto, UserAdminSummary, AdminDailyCount, AdminActivityDaily } from "@/lib/types";
+import type { UserProfile, UserRequestDto, UserAdminSummary, AdminDailyCount, AdminActivityDaily, PageResult } from "@/lib/types";
 
 export const userAPI = {
 
@@ -43,4 +43,27 @@ export const userAPI = {
 
   activityRange: async (startIso: string, endIso: string): Promise<AdminActivityDaily[]> =>
     fetchWrapper.get<AdminActivityDaily[]>(`/user/analytics/activity-range?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`),
+
+  // Get users with search and pagination (for admin)
+  getUsers: async (params?: {
+    q?: string; // search query
+    page?: number;
+    pageSize?: number;
+  }): Promise<PageResult<UserProfile>> => {
+    const queryParams = new URLSearchParams();
+
+    // Set default values
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 20;
+
+    queryParams.append('page', page.toString());
+    queryParams.append('pageSize', pageSize.toString());
+
+    if (params?.q) queryParams.append('q', params.q);
+
+    const queryString = queryParams.toString();
+    const url = `/user/search${queryString ? `?${queryString}` : ''}`;
+
+    return fetchWrapper.get<PageResult<UserProfile>>(url);
+  },
 };

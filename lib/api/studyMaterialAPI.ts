@@ -55,8 +55,13 @@ export const studyMaterialAPI = {
   }): Promise<{ items: StudyMaterialResponse[]; total: number; page: number; pageSize: number }> => {
     const queryParams = new URLSearchParams();
 
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    // Set default values
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 20;
+
+    queryParams.append('page', page.toString());
+    queryParams.append('pageSize', pageSize.toString());
+
     if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
     if (params?.status !== undefined) queryParams.append('status', params.status.toString());
     if (params?.q) queryParams.append('q', params.q);
@@ -168,8 +173,13 @@ export const studyMaterialAPI = {
   }): Promise<{ items: StudyMaterialResponse[]; total: number; page: number; pageSize: number }> => {
     const queryParams = new URLSearchParams();
 
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    // Set default values
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 20;
+
+    queryParams.append('page', page.toString());
+    queryParams.append('pageSize', pageSize.toString());
+
     if (params?.status !== undefined) queryParams.append('status', params.status.toString());
 
     const queryString = queryParams.toString();
@@ -241,8 +251,9 @@ export const studyMaterialLegacy = {
     page: number = 1,
     pageSize: number = 20
   ): Promise<MaterialPageResult<StudyMaterialResponse>> => {
-    // Convert numeric status to the expected format (0, 1, 2)
-    const result = await studyMaterialAPI.getMine({
+    // For backward compatibility, we need to support page parameters
+    // But we'll use the paginated version
+    const result = await studyMaterialAPI.getMinePaginated({
       page,
       pageSize,
       status: status !== undefined ? status as 0 | 1 | 2 : undefined

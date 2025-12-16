@@ -16,18 +16,31 @@ import { PostCard } from '@/components/forum/PostCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlusCircle, Search, TrendingUp, Clock, Filter } from 'lucide-react';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { PlusCircle, Search, Clock, Filter } from 'lucide-react';
 
 type PostFetchStrategy = 'all' | 'byUser' | 'recommended';
 
 const FETCH_STRATEGIES: Record<
   PostFetchStrategy,
-  (args?: { userId?: string }) => Promise<PostResponseDto[]>
+  (args?: { userId?: string; page?: number; pageSize?: number }) => Promise<{ items: PostResponseDto[]; total: number }>
 > = {
-  all: async () => postAPI.getAll(),
-  byUser: async (args) => (args?.userId ? postAPI.getByUser(args.userId) : []),
-  recommended: async () => postAPI.getAll(), // TODO: replace by recommendation endpoint
+  all: async (args = {}) => {
+    const { page = 1, pageSize = 20 } = args;
+    const result = await postAPI.getAll({ page, pageSize });
+    return { items: result.items, total: result.total };
+  },
+  byUser: async (args = {}) => {
+    const userId = args.userId;
+    const { page = 1, pageSize = 20 } = args;
+    if (!userId) return { items: [], total: 0 };
+    const result = await postAPI.getByUser(userId, { page, pageSize });
+    return { items: result.items, total: result.total };
+  },
+  recommended: async () => {
+    const items = await postAPI.getRecommendations();
+    return { items, total: items.length };
+  },
 };
 
 export default function ForumPage() {
@@ -35,32 +48,55 @@ export default function ForumPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const isGuest = !profile?.id; // <-- thêm cờ guest
+  const isGuest = !profile?.id;
 
   const [loading, setLoading] = useState(true);
   const [rawPosts, setRawPosts] = useState<PostResponseDto[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [strategy, setStrategy] = useState<PostFetchStrategy>('all');
+  const [strategy, setStrategy] = useState<PostFetchStrategy>('recommended');
 
-  const fetchPosts = useCallback(async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize] = useState(20);
+
+  const fetchPosts = useCallback(async (page = currentPage) => {
     setLoading(true);
     try {
-      const data = await FETCH_STRATEGIES[strategy]({ userId: profile?.id });
-      const sorted = [...data].sort(
+      const { items, total } = await FETCH_STRATEGIES[strategy]({
+        userId: profile?.id,
+        page,
+        pageSize
+      });
+
+      const sorted = [...items].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setRawPosts(sorted);
+      setTotalItems(total);
     } catch (error) {
       console.error('Failed to load posts:', error);
       toast({ title: 'Error', description: 'Failed to load posts', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [strategy, profile?.id, toast]);
+  }, [strategy, profile?.id, currentPage, pageSize, toast]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  // Reset to first page when strategy or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchPosts(1);
+  }, [strategy, searchQuery]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchPosts(page);
+  };
 
   const uiPosts: UIPost[] = useMemo(() => rawPosts.map(mapPostToUI), [rawPosts]);
 
@@ -71,16 +107,6 @@ export default function ForumPage() {
       (p) => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q)
     );
   }, [uiPosts, searchQuery]);
-
-  const popularPosts = useMemo(
-    () =>
-      [...filteredPosts].sort(
-        (a, b) =>
-          (b.positiveReactionCount - b.negativeReactionCount) -
-          (a.positiveReactionCount - a.negativeReactionCount)
-      ),
-    [filteredPosts]
-  );
 
   type ReactionKind = 'like' | 'dislike';
 
@@ -184,9 +210,9 @@ export default function ForumPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Forum</h1>
+          <h1 className="text-3xl font-bold">Diễn Đàn</h1>
           <p className="text-muted-foreground">
-            Discuss topics and share knowledge {isGuest && '(Guest)'}
+            Trao đổi, thảo luận, chia sẻ kiến thức {isGuest && '(Guest)'}
           </p>
         </div>
 
@@ -209,92 +235,54 @@ export default function ForumPage() {
         </div>
       </div>
 
-      <Card className="p-4">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search posts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+      <div className="space-y-4 mt-6">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading recommended posts...</p>
           </div>
-          <Button variant="outline" size="icon" title="Filter (coming soon)">
-            <Filter className="h-4 w-4" />
-          </Button>
+        ) : filteredPosts.length === 0 ? (
+          <Card className="p-12 text-center">
+            <p className="text-muted-foreground">No recommended posts found</p>
+            {!isGuest && (
+              <Link href="/forum/create">
+                <Button className="mt-4">Create First Post</Button>
+              </Link>
+            )}
+          </Card>
+        ) : (
+          filteredPosts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              canReact={!isGuest}
+              signInHint={isGuest ? 'Sign in to react' : undefined}
+              onLike={() => handleReact(post.id, 'like')}
+              onDislike={() => handleReact(post.id, 'dislike')}
+              isLiked={post.isPositiveReacted === true}
+              isDisliked={post.isNegativeReacted === true}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {strategy !== 'recommended' && (
+        <div className="flex justify-center mt-6">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={Math.ceil(totalItems / pageSize)}
+            onPageChange={handlePageChange}
+          />
         </div>
-      </Card>
+      )}
 
-      <Tabs defaultValue="recent" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="recent">
-            <Clock className="mr-2 h-4 w-4" />
-            Recent
-          </TabsTrigger>
-          <TabsTrigger value="popular">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Popular
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="recent" className="space-y-4 mt-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading posts...</p>
-            </div>
-          ) : filteredPosts.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground">No posts found</p>
-              {!isGuest && (
-                <Link href="/forum/create">
-                  <Button className="mt-4">Create First Post</Button>
-                </Link>
-              )}
-            </Card>
-          ) : (
-            filteredPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                canReact={!isGuest}                 // <-- mới
-                signInHint={isGuest ? 'Sign in to react' : undefined} // <-- tooltip/hint
-                onLike={() => handleReact(post.id, 'like')}
-                onDislike={() => handleReact(post.id, 'dislike')}
-                isLiked={post.isPositiveReacted === true}
-                isDisliked={post.isNegativeReacted === true}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="popular" className="space-y-4 mt-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading posts...</p>
-            </div>
-          ) : popularPosts.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground">No posts found</p>
-            </Card>
-          ) : (
-            popularPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                canReact={!isGuest}                 
-                signInHint={isGuest ? 'Sign in to react' : undefined}
-                onLike={() => handleReact(post.id, 'like')}
-                onDislike={() => handleReact(post.id, 'dislike')}
-                isLiked={post.isPositiveReacted === true}
-                isDisliked={post.isNegativeReacted === true}
-              />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Results info */}
+      {!loading && strategy !== 'recommended' && (
+        <div className="text-center text-sm text-muted-foreground">
+          Showing {filteredPosts.length} of {totalItems} posts
+        </div>
+      )}
     </div>
   );
 }

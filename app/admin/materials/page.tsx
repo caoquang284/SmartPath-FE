@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Pagination } from '@/components/ui/pagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -103,6 +103,12 @@ function MaterialCard({ material, onReview, isReviewing }: MaterialCardProps) {
                   locale: vi,
                 })}
               </span>
+              {material.totalRatings > 0 && (
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  {material.averageRating.toFixed(1)}/5 ({material.totalRatings})
+                </span>
+              )}
               {material.aiConfidence && (
                 <span className="flex items-center gap-1">
                   <Bot className="h-3 w-3" />
@@ -552,7 +558,7 @@ export default function AdminMaterialsPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center">
-              <Pagination
+              <PaginationControls
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}

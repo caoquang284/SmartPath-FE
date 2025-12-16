@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CommentCard } from '@/components/forum/CommentCard';
+import { CommentSkeleton } from '@/components/ui/skeleton-card';
 
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -110,6 +111,16 @@ function PostDetailContent() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  // Comment pagination state
+  const [commentPage, setCommentPage] = useState(1);
+  const [commentPageSize] = useState(10);
+  const [totalCommentsCount, setTotalCommentsCount] = useState(0);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [shouldScrollToComments, setShouldScrollToComments] = useState(false);
+
   //comment attachments
   const [cImages, setCImages] = useState<QueuedImage[]>([]);
   const [cDocs, setCDocs] = useState<QueuedDoc[]>([]);
@@ -130,6 +141,23 @@ function PostDetailContent() {
     setPreviewUrl(url);
     setPreviewOpen(true);
   };
+
+  // edit post state
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [updatingPost, setUpdatingPost] = useState(false);
+
+  // delete post state
+  const [deletingPost, setDeletingPost] = useState(false);
+
+  // edit comment state
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
+  const [updatingComment, setUpdatingComment] = useState(false);
+
+  // material removal state
+  const [removingMaterial, setRemovingMaterial] = useState<string | null>(null);
 
   function countTree(nodes: UIComment[]): number {
     let total = 0;
@@ -181,57 +209,156 @@ function PostDetailContent() {
     }
   }, [postId]);
 
-  const loadComments = useCallback(async () => {
+  // Add a debounce for scroll events
+  const [isScrollLoading, setIsScrollLoading] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const loadComments = useCallback(async (isLoadMore = false) => {
     if (!postId) return;
+
+    const pageToLoad = isLoadMore ? commentPage + 1 : 1;
+
+    if (isLoadMore) {
+      setLoadingMoreComments(true);
+      // Add small delay to prevent rapid scrolling from causing jitter
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
     try {
-      const list = await commentAPI.getByPost(postId);
-      // 1) Build tree trước
-      let tree = mapCommentsToUITree(list, postId, 2);
+      const result = await commentAPI.getByPost(postId, {
+        page: pageToLoad,
+        pageSize: commentPageSize,
+      });
 
-      // 2) Lấy tất cả commentId trong tree
-      const ids: string[] = [];
-      (function collect(nodes: UIComment[]) {
-        for (const n of nodes) {
-          ids.push(n.id);
-          if (n.children?.length) collect(n.children);
-        }
-      })(tree);
+      const flat = result?.items || [];
+      let tree = mapCommentsToUITree(flat, postId, 2);
 
-      // 3) Gọi API lấy materials cho từng comment (song song)
-      const pairs = await Promise.all(
-        ids.map(async (cid) => {
-          try {
-            const mats = await materialAPI.listByComment(cid);
-            return [cid, mats] as [string, MaterialResponse[]];
-          } catch {
-            return [cid, []] as [string, MaterialResponse[]];
-          }
-        })
-      );
-      const byId = Object.fromEntries(pairs) as Record<string, MaterialResponse[]>;
+      // ... attach materials + sort như bạn đang làm
 
-      // 4) Gắn materials vào tree
-      tree = attachMaterialsToTree(tree, byId);
+      const totalCount = result?.total || 0;
+      const totalPages = Math.ceil(totalCount / commentPageSize);
 
-      const getCreatedTs = (n: any) => {
-        const v = n.created_at ?? n.createdAt;
-        return v ? new Date(v).getTime() : 0;
-      };
-      (function sortChildrenAsc(nodes: UIComment[]) {
-        for (const n of nodes) {
-          if (n.children?.length) {
-            n.children.sort((a, b) => getCreatedTs(a) - getCreatedTs(b));
-            sortChildrenAsc(n.children);
-          }
-        }
-      })(tree);
+      if (isLoadMore) {
+        setComments(prev => [...prev, ...tree]);
+        setCommentPage(pageToLoad);
+      } else {
+        setComments(tree);
+        setCommentPage(1);
+        setTotalCommentsCount(totalCount);
+        setInitialLoadComplete(true); // Mark initial load as complete
+      }
 
-
-      setComments(tree);
+      setHasMoreComments(pageToLoad < totalPages);
     } catch (e) {
       console.error('Failed to load comments', e);
+    } finally {
+      if (isLoadMore) {
+        setLoadingMoreComments(false);
+        setIsScrollLoading(false);
+      }
     }
-  }, [postId]);
+  }, [postId, commentPage, commentPageSize]);
+
+  const loadMoreComments = () => {
+    if (!loadingMoreComments && hasMoreComments) {
+      loadComments(true);
+    }
+  };
+
+  // Infinite scroll handler - detects scroll to bottom of page with debouncing
+  const handleScroll = useCallback(() => {
+    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+
+    // Mark that user has scrolled
+    if (scrollTop > 50) {
+      setUserHasScrolled(true);
+    }
+
+    // Only load more if:
+    // 1. Initial load is complete
+    // 2. User has scrolled at least once
+    // 3. At bottom of page (within 200px)
+    // 4. Not already loading
+    // 5. There are more comments to load
+    if (initialLoadComplete && userHasScrolled && (scrollHeight - scrollTop - clientHeight < 200) && !loadingMoreComments && !isScrollLoading && hasMoreComments) {
+      setIsScrollLoading(true);
+
+      // Clear any existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Debounce the scroll event to prevent rapid loading
+      scrollTimeoutRef.current = setTimeout(() => {
+        loadComments(true);
+      }, 500);
+    }
+  }, [loadingMoreComments, hasMoreComments, isScrollLoading, initialLoadComplete, userHasScrolled]);
+
+  // Prevent automatic scroll on comment load and restore position
+  useEffect(() => {
+    let lastScrollY = 0;
+
+    const preventAutoScroll = () => {
+      // Save current scroll position
+      lastScrollY = window.scrollY;
+
+      // Restore scroll position after a brief delay to prevent flash
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          window.scrollTo(0, lastScrollY);
+        }, 50);
+      });
+    };
+
+    // Listen for DOM changes specifically in the comments area
+    const observer = new MutationObserver((mutations) => {
+      const hasCommentChanges = mutations.some((mutation) => {
+        return Array.from(mutation.addedNodes).some((node) => {
+          if (node.nodeType !== Node.ELEMENT_NODE) return false;
+          const element = node as HTMLElement;
+          return (
+            element.classList?.contains('space-y-4') ||
+            element.classList?.contains('CommentSkeleton') ||
+            element.querySelector('.CommentSkeleton')
+          );
+        });
+      });
+
+      if (hasCommentChanges && !shouldScrollToComments) {
+        preventAutoScroll();
+      }
+    });
+
+    // Observe the comments container specifically
+    const commentsContainer = document.querySelector('[data-comments-container]');
+    if (commentsContainer) {
+      observer.observe(commentsContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [shouldScrollToComments]);
+
+  // Add global scroll event listener with proper cleanup
+  useEffect(() => {
+    const throttledHandleScroll = () => {
+      requestAnimationFrame(handleScroll);
+    };
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', throttledHandleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [handleScroll]);
 
   const loadOwnerInformation = useCallback(async () => {
     if (!postId) return;
@@ -409,6 +536,160 @@ function PostDetailContent() {
     }
   };
 
+  // ===== Post Edit/Delete Functions =====
+  const handleEditPost = () => {
+    if (!uiPost) return;
+    setEditTitle(uiPost.title);
+    setEditContent(uiPost.content);
+    setIsEditingPost(true);
+  };
+
+  const handleUpdatePost = async () => {
+    if (!uiPost || !postId) return;
+    if (!editTitle.trim()) {
+      toast({ title: 'Error', description: 'Title cannot be empty', variant: 'destructive' });
+      return;
+    }
+
+    setUpdatingPost(true);
+    try {
+      await postAPI.update(postId, {
+        title: editTitle.trim(),
+        content: editContent.trim(),
+      });
+
+      // Update local state
+      setRawPost((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          title: editTitle.trim(),
+          content: editContent.trim(),
+        };
+      });
+
+      setIsEditingPost(false);
+      toast({ title: 'Success', description: 'Post updated successfully' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to update post', variant: 'destructive' });
+    } finally {
+      setUpdatingPost(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!postId) return;
+
+    setDeletingPost(true);
+    try {
+      await postAPI.delete(postId);
+      toast({ title: 'Success', description: 'Post deleted successfully' });
+      router.push('/forum');
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to delete post', variant: 'destructive' });
+    } finally {
+      setDeletingPost(false);
+    }
+  };
+
+  // ===== Comment Edit/Delete Functions =====
+  const handleEditComment = (commentId: string) => {
+    const comment = findComment(comments, commentId);
+    if (!comment) return;
+    setEditCommentContent(comment.content);
+    setEditingComment(commentId);
+  };
+
+  const handleUpdateComment = async (commentId: string) => {
+    if (!editCommentContent.trim()) {
+      toast({ title: 'Error', description: 'Comment cannot be empty', variant: 'destructive' });
+      return;
+    }
+
+    setUpdatingComment(true);
+    try {
+      await commentAPI.update(commentId, {
+        content: editCommentContent.trim(),
+      });
+
+      // Update local state
+      setComments((prev) => {
+        const clone = structuredClone(prev) as UIComment[];
+        const stack = [...clone];
+        while (stack.length) {
+          const node = stack.pop()!;
+          if (node.id === commentId) {
+            node.content = editCommentContent.trim();
+            break;
+          }
+          if (node.children?.length) stack.push(...node.children);
+        }
+        return clone;
+      });
+
+      setEditingComment(null);
+      setEditCommentContent('');
+      toast({ title: 'Success', description: 'Comment updated successfully' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to update comment', variant: 'destructive' });
+    } finally {
+      setUpdatingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await commentAPI.delete(commentId);
+
+      // Update local state - remove the comment and its children
+      setComments((prev) => {
+        const clone = structuredClone(prev) as UIComment[];
+
+        const removeNode = (nodes: UIComment[]): UIComment[] => {
+          return nodes.filter(node => {
+            if (node.id === commentId) {
+              return false; // Remove this node and all its children
+            }
+            if (node.children) {
+              node.children = removeNode(node.children);
+            }
+            return true;
+          });
+        };
+
+        return removeNode(clone);
+      });
+
+      toast({ title: 'Success', description: 'Comment deleted successfully' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to delete comment', variant: 'destructive' });
+    }
+  };
+
+  // ===== Material Removal Function =====
+  const handleRemoveMaterial = async (materialId: string) => {
+    if (!postId) return;
+
+    setRemovingMaterial(materialId);
+    try {
+      await materialAPI.delete(materialId);
+
+      // Update local state
+      setMaterials((prev) => prev.filter(m => m.id !== materialId));
+
+      toast({ title: 'Success', description: 'Material removed successfully' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to remove material', variant: 'destructive' });
+    } finally {
+      setRemovingMaterial(null);
+    }
+  };
+
   // ===== Comments =====
 
   function findComment(nodes: UIComment[], id: string): UIComment | undefined {
@@ -514,7 +795,7 @@ function PostDetailContent() {
         );
       }
 
-      await loadComments();
+      await loadComments(false); // Reset comments after new comment
 
       cImages.forEach((i) => URL.revokeObjectURL(i.preview));
       setCImages([]); setCDocs([]); setCUploadProgress(0);
@@ -714,11 +995,19 @@ function PostDetailContent() {
 
           {profile?.id === uiPost.author_id && (
             <div className="flex gap-2">
-              <Button variant="ghost" size="icon" title="Edit (coming soon)">
-                <Edit className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={handleEditPost}>
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
               </Button>
-              <Button variant="ghost" size="icon" title="Delete (coming soon)">
-                <Trash2 className="h-4 w-4 text-red-500" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDeletePost}
+                disabled={deletingPost}
+                className="text-red-500 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                {deletingPost ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           )}
@@ -758,20 +1047,34 @@ function PostDetailContent() {
               {images.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {images.map((img) => (
-                    <button
-                      key={img.id}
-                      type="button"
-                      className="relative aspect-square overflow-hidden rounded-lg border hover:opacity-90"
-                      onClick={() => openPreview(img.fileUrl)}
-                      title={img.title}
-                    >
-                      <img
-                        src={img.fileUrl}
-                        alt={img.title}
-                        className="object-cover w-full h-full"
-                        loading="lazy"
-                      />
-                    </button>
+                    <div key={img.id} className="relative group">
+                      <button
+                        type="button"
+                        className="relative aspect-square overflow-hidden rounded-lg border hover:opacity-90 w-full"
+                        onClick={() => openPreview(img.fileUrl)}
+                        title={img.title}
+                      >
+                        <img
+                          src={img.fileUrl}
+                          alt={img.title}
+                          className="object-cover w-full h-full"
+                          loading="lazy"
+                        />
+                      </button>
+                      {/* Delete button for post owner */}
+                      {profile?.id === uiPost.author_id && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveMaterial(img.id)}
+                          disabled={removingMaterial === img.id}
+                          title="Remove image"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -788,7 +1091,7 @@ function PostDetailContent() {
                         <FileText className="h-4 w-4" />
                         <span className="truncate">{doc.title || doc.fileUrl}</span>
                       </div>
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex items-center gap-2">
                         <a
                           href={toHttpUrl(doc.fileUrl)}
                           target="_blank"
@@ -800,6 +1103,19 @@ function PostDetailContent() {
                           <Download className="h-4 w-4" />
                           Download
                         </a>
+                        {/* Delete button for post owner */}
+                        {profile?.id === uiPost.author_id && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleRemoveMaterial(doc.id)}
+                            disabled={removingMaterial === doc.id}
+                            title="Remove document"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -842,6 +1158,52 @@ function PostDetailContent() {
         </CardContent>
       </Card>
 
+      {/* Edit Post Dialog */}
+      <Dialog open={isEditingPost} onOpenChange={setIsEditingPost}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Post title"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Content</label>
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full mt-1"
+                rows={6}
+                placeholder="Post content"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditingPost(false)}
+                disabled={updatingPost}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdatePost}
+                disabled={updatingPost || !editTitle.trim()}
+              >
+                {updatingPost ? 'Updating...' : 'Update Post'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Image preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl">
@@ -857,7 +1219,7 @@ function PostDetailContent() {
       {/* Comments */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Comments ({totalComments})</h2>
+          <h2 className="text-xl font-semibold">Bình Luận</h2>
         </CardHeader>
         <CardContent className="space-y-6">
           {isGuest ? (
@@ -994,27 +1356,68 @@ function PostDetailContent() {
 
           <Separator />
 
-          {comments.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Chưa có comment nào!</p>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((c) => (
-                <div key={c.id} id={`comment-${c.id}`}>
-                  <CommentCard
-                    comment={c}
-                    canReact={!isGuest}                         
-                    canReply={!isGuest}  
-                    onLike={(id) => handleCommentReact(id, 'like')}
-                    onDislike={(id) => handleCommentReact(id, 'dislike')}
-                    onSubmitReply={(parentId, content, imgs, docs) =>
-                      handleSubmitReply(parentId, content, imgs, docs)
-                    }
-                    onPreview={openPreview}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="space-y-4" data-comments-container>
+            {comments.length === 0 && !loadingMoreComments ? (
+              <p className="text-center text-muted-foreground py-8">Chưa có comment nào!</p>
+            ) : (
+              <>
+                {comments.map((c) => (
+                  <div key={c.id} id={`comment-${c.id}`}>
+                    <CommentCard
+                      comment={c}
+                      canReact={!isGuest}
+                      canReply={!isGuest}
+                      onLike={(id) => handleCommentReact(id, 'like')}
+                      onDislike={(id) => handleCommentReact(id, 'dislike')}
+                      onSubmitReply={(parentId, content, imgs, docs) =>
+                        handleSubmitReply(parentId, content, imgs, docs)
+                      }
+                      onPreview={openPreview}
+                      canEdit={profile?.id === c.author.id}
+                      onEdit={handleEditComment}
+                      onUpdate={handleUpdateComment}
+                      onDelete={handleDeleteComment}
+                      editingComment={editingComment}
+                      editCommentContent={editCommentContent}
+                      setEditCommentContent={setEditCommentContent}
+                      updatingComment={updatingComment}
+                    />
+                  </div>
+                ))}
+
+                {/* Skeleton loaders when loading more comments */}
+                {loadingMoreComments && (
+                  <div className="space-y-4">
+                    <div className="text-center text-sm text-muted-foreground py-2">
+                      Loading more comments...
+                    </div>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <CommentSkeleton key={`skeleton-${i}`} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Show indicator when there are more comments to load */}
+                {hasMoreComments && !loadingMoreComments && (
+                  <div className="text-center py-4">
+                    <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <span>Scroll to bottom for more comments</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* End of comments indicator */}
+                {!hasMoreComments && comments.length > 0 && (
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    Showing all {countTree(comments)} comments
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
