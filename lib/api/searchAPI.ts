@@ -13,115 +13,17 @@ import {
 // Search Engine API Functions
 
 /**
- * Comprehensive search with advanced filtering options
- * POST /search/search
+ * Unified search endpoint with advanced filtering options (public)
+ * POST /search
  */
-export async function comprehensiveSearch(request: SearchRequest): Promise<SearchResponse> {
+export async function search(request: SearchRequest): Promise<SearchResponse> {
   const response = await fetchWrapper.post<SearchResponse>(
-    `/search/search`,
+    `/search`,
     request
   );
   return response;
 }
 
-/**
- * Quick search (keyword only)
- * GET /search/quick
- */
-export async function quickSearch(
-  query: string,
-  type: 'All' | 'Posts' | 'StudyMaterials' = 'All',
-  page: number = 1,
-  pageSize: number = 10
-): Promise<SearchResponse> {
-  const params = new URLSearchParams({
-    q: query,
-    type,
-    page: page.toString(),
-    pageSize: pageSize.toString()
-  });
-
-  const response = await fetchWrapper.get<SearchResponse>(
-    `/search/quick?${params}`
-  );
-  return response;
-}
-
-/**
- * Semantic search (AI-powered)
- * GET /search/semantic
- */
-export async function semanticSearch(
-  query: string,
-  type: 'All' | 'Posts' | 'StudyMaterials' = 'Posts',
-  page: number = 1,
-  pageSize: number = 10
-): Promise<SearchResponse> {
-  const params = new URLSearchParams({
-    q: query,
-    type,
-    page: page.toString(),
-    pageSize: pageSize.toString()
-  });
-
-  const response = await fetchWrapper.get<SearchResponse>(
-    `/search/semantic?${params}`
-  );
-  return response;
-}
-
-/**
- * Advanced search with URL parameters
- * GET /search/advanced
- */
-export async function advancedSearch(params: {
-  q: string;
-  type?: 'All' | 'Posts' | 'StudyMaterials';
-  categoryIds?: string[];
-  materialCategoryIds?: string[];
-  includeSemantic?: boolean;
-  includeKeyword?: boolean;
-  sortBy?: 'relevance' | 'created' | 'updated' | 'views' | 'likes' | 'rating';
-  sortOrder?: 'asc' | 'desc';
-  page?: number;
-  pageSize?: number;
-}): Promise<SearchResponse> {
-  const urlParams = new URLSearchParams({
-    q: params.q,
-    type: params.type || 'All',
-    page: (params.page || 1).toString(),
-    pageSize: (params.pageSize || 20).toString()
-  });
-
-  if (params.categoryIds && params.categoryIds.length > 0) {
-    urlParams.set('categoryIds', params.categoryIds.join(','));
-  }
-
-  if (params.materialCategoryIds && params.materialCategoryIds.length > 0) {
-    urlParams.set('materialCategoryIds', params.materialCategoryIds.join(','));
-  }
-
-  if (params.includeSemantic !== undefined) {
-    urlParams.set('includeSemantic', params.includeSemantic.toString());
-  }
-
-  if (params.includeKeyword !== undefined) {
-    urlParams.set('includeKeyword', params.includeKeyword.toString());
-  }
-
-  if (params.sortBy) {
-    urlParams.set('sortBy', params.sortBy);
-  }
-
-  if (params.sortOrder) {
-    urlParams.set('sortOrder', params.sortOrder);
-  }
-
-  const response = await fetchWrapper.get<SearchResponse>(
-    `$/search/advanced?${urlParams}`
-  );
-  return response;
-}
 
 /**
  * Get post search suggestions

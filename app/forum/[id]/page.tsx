@@ -119,7 +119,6 @@ function PostDetailContent() {
   const [loadingMoreComments, setLoadingMoreComments] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
-  const [shouldScrollToComments, setShouldScrollToComments] = useState(false);
 
   //comment attachments
   const [cImages, setCImages] = useState<QueuedImage[]>([]);
@@ -295,54 +294,32 @@ function PostDetailContent() {
     }
   }, [loadingMoreComments, hasMoreComments, isScrollLoading, initialLoadComplete, userHasScrolled]);
 
-  // Prevent automatic scroll on comment load and restore position
+  // Prevent automatic scroll on page load
   useEffect(() => {
-    let lastScrollY = 0;
+    // Store initial scroll position and prevent automatic scrolling
+    const initialScrollY = window.scrollY;
 
+    // Override any potential scroll-to-comments behavior on page load
     const preventAutoScroll = () => {
-      // Save current scroll position
-      lastScrollY = window.scrollY;
-
-      // Restore scroll position after a brief delay to prevent flash
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          window.scrollTo(0, lastScrollY);
-        }, 50);
-      });
+      if (window.scrollY > initialScrollY + 100) {
+        window.scrollTo({
+          top: initialScrollY,
+          behavior: 'auto'
+        });
+      }
     };
 
-    // Listen for DOM changes specifically in the comments area
-    const observer = new MutationObserver((mutations) => {
-      const hasCommentChanges = mutations.some((mutation) => {
-        return Array.from(mutation.addedNodes).some((node) => {
-          if (node.nodeType !== Node.ELEMENT_NODE) return false;
-          const element = node as HTMLElement;
-          return (
-            element.classList?.contains('space-y-4') ||
-            element.classList?.contains('CommentSkeleton') ||
-            element.querySelector('.CommentSkeleton')
-          );
-        });
-      });
-
-      if (hasCommentChanges && !shouldScrollToComments) {
-        preventAutoScroll();
-      }
-    });
-
-    // Observe the comments container specifically
-    const commentsContainer = document.querySelector('[data-comments-container]');
-    if (commentsContainer) {
-      observer.observe(commentsContainer, {
-        childList: true,
-        subtree: true
-      });
-    }
+    // Check for unwanted scrolling immediately and after content loads
+    const timeout1 = setTimeout(preventAutoScroll, 100);
+    const timeout2 = setTimeout(preventAutoScroll, 300);
+    const timeout3 = setTimeout(preventAutoScroll, 800);
 
     return () => {
-      observer.disconnect();
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
     };
-  }, [shouldScrollToComments]);
+  }, []);
 
   // Add global scroll event listener with proper cleanup
   useEffect(() => {
@@ -380,6 +357,19 @@ function PostDetailContent() {
 
   useEffect(() => {
     if (!targetCommentId) return;
+
+    // Only scroll if user explicitly navigated to a comment URL (from another page)
+    // This prevents scrolling on normal page entry
+    const hasCommentHash = window.location.hash.includes(`comment-${targetCommentId}`);
+    const referrer = document.referrer;
+    const sameOrigin = referrer && referrer.startsWith(window.location.origin);
+    const isExternalNavigation = referrer && !sameOrigin;
+
+    // Only scroll if:
+    // 1. URL has comment hash, OR
+    // 2. Coming from external site with comment parameter
+    if (!hasCommentHash && !isExternalNavigation) return;
+
     const t = setTimeout(() => {
       const el = document.getElementById(`comment-${targetCommentId}`);
       if (el) {

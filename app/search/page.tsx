@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  comprehensiveSearch,
+  search,
   getPostSuggestions,
   getMaterialSuggestions,
   debounce,
@@ -40,6 +40,7 @@ import {
 } from '@/lib/api/searchAPI';
 import { materialCategoryAPI } from '@/lib/api/studyMaterialAPI';
 import { postAPI } from '@/lib/api/postAPI';
+import { categoryAPI } from '@/lib/api/categoryAPI';
 import { SearchRequest, SearchResponse, MaterialCategory, PostSuggestion, MaterialSuggestion } from '@/lib/types';
 
 function SearchPageContent() {
@@ -66,17 +67,6 @@ function SearchPageContent() {
     materials: []
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
-
-  // Debounce search query
-  useEffect(() => {
-    const debounced = debounce((value: string) => {
-      setDebouncedQuery(value);
-    }, 300);
-
-    debounced(query);
-    return () => {};
-  }, [query]);
 
   // Load categories
   useEffect(() => {
@@ -84,7 +74,7 @@ function SearchPageContent() {
       try {
         const [materialCats, postCats] = await Promise.all([
           materialCategoryAPI.getTree(),
-          postAPI.getCategories()
+          categoryAPI.getAll()
         ]);
         setCategories(materialCats);
         setPostCategories(postCats);
@@ -95,13 +85,7 @@ function SearchPageContent() {
     loadCategories();
   }, []);
 
-  // Auto-search when debounced query changes
-  useEffect(() => {
-    if (debouncedQuery.trim()) {
-      handleSearch(debouncedQuery);
-    }
-  }, [debouncedQuery]);
-
+  
   // Load suggestions when query changes
   useEffect(() => {
     if (query.trim().length > 2) {
@@ -128,8 +112,12 @@ function SearchPageContent() {
 
     setLoading(true);
     try {
-      const request = { ...searchRequest, query: searchValue };
-      const results = await comprehensiveSearch(request);
+      const request: SearchRequest = {
+        ...searchRequest,
+        query: searchValue,
+      };
+
+      const results = await search(request);
       setSearchResults(results);
     } catch (error) {
       console.error('Search failed:', error);
@@ -145,12 +133,27 @@ function SearchPageContent() {
   };
 
   const updateSearchRequest = (updates: Partial<SearchRequest>) => {
-    const newRequest = { ...searchRequest, ...updates };
-    setSearchRequest(newRequest);
-    if (query.trim()) {
-      setSearchRequest(newRequest);
-      setTimeout(() => handleSearch(query), 100);
+    let newRequest = { ...searchRequest, ...updates };
+
+    // Clear filters when switching search type to avoid confusion
+    if (updates.searchType && updates.searchType !== searchRequest.searchType) {
+      if (updates.searchType === 'Posts') {
+        // Clear material categories and rating when switching to Posts only
+        newRequest.materialCategoryIds = [];
+        if (newRequest.sortBy === 'rating') {
+          newRequest.sortBy = 'relevance';
+        }
+      } else if (updates.searchType === 'StudyMaterials') {
+        // Clear post categories and likes when switching to Study Materials only
+        newRequest.categoryIds = [];
+        if (newRequest.sortBy === 'likes') {
+          newRequest.sortBy = 'relevance';
+        }
+      }
+      // When switching to 'All', keep both categories as they are
     }
+
+    setSearchRequest(newRequest);
   };
 
   const renderCategoryTree = (categories: MaterialCategory[], level = 0) => {
@@ -328,8 +331,14 @@ function SearchPageContent() {
                         <SelectItem value="created">Created Date</SelectItem>
                         <SelectItem value="updated">Updated Date</SelectItem>
                         <SelectItem value="views">Views</SelectItem>
-                        <SelectItem value="likes">Likes</SelectItem>
-                        <SelectItem value="rating">Rating</SelectItem>
+                        {/* Likes only applies to posts */}
+                        {(searchRequest.searchType === 'All' || searchRequest.searchType === 'Posts') && (
+                          <SelectItem value="likes">Likes</SelectItem>
+                        )}
+                        {/* Rating only applies to study materials */}
+                        {(searchRequest.searchType === 'All' || searchRequest.searchType === 'StudyMaterials') && (
+                          <SelectItem value="rating">Rating</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -384,38 +393,42 @@ function SearchPageContent() {
                 <Separator className="my-6" />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Post Categories */}
-                  <div>
-                    <h3 className="font-medium mb-3">Post Categories</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {postCategories.map(category => (
-                        <div key={category.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`post-cat-${category.id}`}
-                            checked={searchRequest.categoryIds?.includes(category.id) || false}
-                            onCheckedChange={(checked) => {
-                              const currentIds = searchRequest.categoryIds || [];
-                              const newIds = checked
-                                ? [...currentIds, category.id]
-                                : currentIds.filter(id => id !== category.id);
-                              updateSearchRequest({ categoryIds: newIds });
-                            }}
-                          />
-                          <label htmlFor={`post-cat-${category.id}`} className="text-sm">
-                            {category.name}
-                          </label>
-                        </div>
-                      ))}
+                  {/* Post Categories - Only show when searching for Posts or All */}
+                  {(searchRequest.searchType === 'All' || searchRequest.searchType === 'Posts') && (
+                    <div>
+                      <h3 className="font-medium mb-3">Post Categories</h3>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {postCategories.map(category => (
+                          <div key={category.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`post-cat-${category.id}`}
+                              checked={searchRequest.categoryIds?.includes(category.id) || false}
+                              onCheckedChange={(checked) => {
+                                const currentIds = searchRequest.categoryIds || [];
+                                const newIds = checked
+                                  ? [...currentIds, category.id]
+                                  : currentIds.filter(id => id !== category.id);
+                                updateSearchRequest({ categoryIds: newIds });
+                              }}
+                            />
+                            <label htmlFor={`post-cat-${category.id}`} className="text-sm">
+                              {category.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Material Categories */}
-                  <div>
-                    <h3 className="font-medium mb-3">Material Categories</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {categories.map(category => renderCategoryTree([category]))}
+                  {/* Material Categories - Only show when searching for Study Materials or All */}
+                  {(searchRequest.searchType === 'All' || searchRequest.searchType === 'StudyMaterials') && (
+                    <div>
+                      <h3 className="font-medium mb-3">Material Categories</h3>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {categories.map(category => renderCategoryTree([category]))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -543,7 +556,7 @@ function SearchPageContent() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={getMatchTypeStyle(post.matchType)}>
+                            <Badge className={getMatchTypeStyle(post.matchType)}>
                               {post.matchType}
                             </Badge>
                             <Badge className={getRelevanceScoreColor(post.relevanceScore)}>
@@ -580,7 +593,7 @@ function SearchPageContent() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={getMatchTypeStyle(material.matchType)}>
+                            <Badge className={getMatchTypeStyle(material.matchType)}>
                               {material.matchType}
                             </Badge>
                             <Badge className={getRelevanceScoreColor(material.relevanceScore)}>

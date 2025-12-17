@@ -228,7 +228,7 @@ export default function ForumPage() {
             <Link href="/forum/create">
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                New Post
+                  Đăng bài
               </Button>
             </Link>
           )}

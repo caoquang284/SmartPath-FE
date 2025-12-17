@@ -59,7 +59,7 @@ export const postAPI = {
 
   // Get post categories
   getCategories: async (): Promise<{ id: string; name: string }[]> => {
-    return fetchWrapper.get(`/post/categories`);
+    return fetchWrapper.get(`/category`);
   },
 
   // Get recommended posts
