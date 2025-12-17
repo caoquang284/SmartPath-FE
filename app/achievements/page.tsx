@@ -10,7 +10,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Trophy, Medal, Target } from 'lucide-react';
 import { badgeAPI } from '@/lib/api/badgeAPI';
 import type { BadgeResponseDto } from '@/lib/types';
-import { useLanguage } from '@/context/LanguageContext';
 
 type BadgeWithStatus = {
   id: string;
@@ -22,7 +21,6 @@ type BadgeWithStatus = {
 
 export default function AchievementsPage() {
   const { profile } = useAuth();
-  const { t } = useLanguage();
 
   const [badgesApi, setBadgesApi] = useState<BadgeResponseDto[]>([]);
   const [loadingBadges, setLoadingBadges] = useState<boolean>(true);
@@ -87,7 +85,7 @@ export default function AchievementsPage() {
           <Sidebar />
           <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
             <Card className="p-8">
-              <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+              <p className="text-sm text-muted-foreground">Loading badges…</p>
             </Card>
           </main>
         </div>
@@ -103,7 +101,7 @@ export default function AchievementsPage() {
           <Sidebar />
           <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
             <Card className="p-8">
-              <p className="text-sm text-red-600">{t.achievements.failedToLoad}: {errorBadges}</p>
+              <p className="text-sm text-red-600">Failed to load badges: {errorBadges}</p>
             </Card>
           </main>
         </div>
@@ -122,37 +120,37 @@ export default function AchievementsPage() {
               <div className="flex items-center gap-3">
                 <Trophy className="h-6 w-6" />
                 <div>
-                  <CardTitle className="text-2xl font-bold">{t.achievements.title}</CardTitle>
+                  <CardTitle className="text-2xl font-bold">Your Achievement Journey</CardTitle>
                   <p className="text-blue-50">
-                    {t.achievements.description}
+                    Track your progress and celebrate milestones as you contribute to SmartPath.
                   </p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-3">
               <div>
-                <p className="text-sm text-blue-100">{t.achievements.reputationPoints}</p>
+                <p className="text-sm text-blue-100">Reputation points</p>
                 <p className="text-3xl font-semibold">{totalReputation}</p>
                 <p className="text-sm text-blue-100">
                   {nextBadge
-                    ? `${Math.max(nextBadge.point - totalReputation, 0)} ${t.achievements.pointsAway} ${nextBadge.name}`
-                    : t.achievements.reachedHighest}
+                    ? `${Math.max(nextBadge.point - totalReputation, 0)} points away from ${nextBadge.name}`
+                    : 'You reached the highest tier!'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-blue-100">{t.achievements.badgesEarned}</p>
+                <p className="text-sm text-blue-100">Badges earned</p>
                 <p className="text-3xl font-semibold">{earnedCount}</p>
                 <p className="text-sm text-blue-100">
-                  {badgesWithStatus.length - earnedCount} {t.achievements.moreToCollect}
+                  {badgesWithStatus.length - earnedCount} more to collect
                 </p>
               </div>
               <div>
-                <p className="text-sm text-blue-100">{t.achievements.progressToNext}</p>
+                <p className="text-sm text-blue-100">Progress to next badge</p>
                 <Progress value={progressToNext} className="h-2 bg-blue-400/50" />
                 <p className="text-sm text-blue-100 mt-2">
                   {nextBadge
-                    ? t.achievements.wayTo.replace('{percent}', progressToNext.toFixed(0)) + ` ${nextBadge.name}.`
-                    : t.achievements.unlockedAll}
+                    ? `You're ${progressToNext.toFixed(0)}% of the way to ${nextBadge.name}.`
+                    : 'You have unlocked every badge. Incredible!'}
                 </p>
               </div>
             </CardContent>
@@ -160,7 +158,7 @@ export default function AchievementsPage() {
 
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">{t.achievements.collection}</h2>
+              <h2 className="text-xl font-semibold">Badge Collection</h2>
               <BadgePill variant="secondary">{badgesWithStatus.length}</BadgePill>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -195,8 +193,8 @@ export default function AchievementsPage() {
                       <Target className="h-4 w-4" />
                       <span>
                         {badge.earned
-                          ? t.achievements.unlocked
-                          : `${Math.max(badge.point - totalReputation, 0)} ${t.achievements.pointsToUnlock}`}
+                          ? 'Unlocked'
+                          : `${Math.max(badge.point - totalReputation, 0)} points to unlock`}
                       </span>
                     </div>
                   </CardContent>

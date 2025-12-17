@@ -12,17 +12,13 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { vi, enUS } from 'date-fns/locale';
 import { chatAPI } from '@/lib/api/chatAPI';
 import { messageAPI } from '@/lib/api/messageAPI';
 import type { Chat, Message } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
-import { useMessageNotifications } from '@/hooks/use-message-notifications';
 import { useChatHub } from '@/hooks/use-chat';
 
 export default function MessagesPage() {
-  const { t, locale } = useLanguage();
   const params = useParams<{ chatId?: string[] }>();
   const router = useRouter();
   const { profile: currentUser } = useAuth();
@@ -36,7 +32,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const lastJoinedRef = useRef<string | null>(null);
 
-  const { scrollRef, scrollToBottom, handleScroll } = useAutoScroll([selectedChat?.messages, selectedChatId]);
+  const { scrollRef, scrollToBottom, handleScroll } = useAutoScroll([selectedChat?.messages]);
 
   const {profile}=useAuth()
   if (!profile) {
@@ -49,9 +45,9 @@ export default function MessagesPage() {
         <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">{t.messages.title}</h1>
+              <h1 className="text-3xl font-bold">Chat</h1>
               <p className="text-muted-foreground">
-                {t.messages.loginRequired}
+                Đăng nhập để sử dụng tính năng này
               </p>
             </div>
           </div>
@@ -60,8 +56,6 @@ export default function MessagesPage() {
     </div>
     );
   }
-
-  const { markChatRead } = useMessageNotifications(currentUser?.id);
 
   const { connected, join, leave, markMessagesRead } = useChatHub({
     selectedChatId,
@@ -242,9 +236,6 @@ export default function MessagesPage() {
         const chat = await chatAPI.getById(selectedChatId);
         setSelectedChat(chat);
 
-        // Mark chat as read when viewing
-        markChatRead(selectedChatId);
-
         if (connected) {
           if (lastJoinedRef.current && lastJoinedRef.current !== selectedChatId) {
             await leave(lastJoinedRef.current).catch(() => {});
@@ -257,7 +248,7 @@ export default function MessagesPage() {
         setSelectedChat(null);
       }
     })();
-  }, [selectedChatId, connected, join, leave, markChatRead]);
+  }, [selectedChatId, connected, join, leave]);
 
   const handleSelectChat = useCallback((id: string) => {
     setSelectedChatId(id);
@@ -385,8 +376,8 @@ export default function MessagesPage() {
         <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">{t.messages.title}</h1>
-              <p className="text-muted-foreground">{t.messages.subtitle}</p>
+              <h1 className="text-3xl font-bold">Messages</h1>
+              <p className="text-muted-foreground">Chat with friends and groups</p>
             </div>
 
             {/* Khung cố định chiều cao, con tự cuộn */}
@@ -396,9 +387,9 @@ export default function MessagesPage() {
                 <ScrollArea className="h-full">
                   <div className="p-4 space-y-2">
                     {loading ? (
-                      <div className="text-sm text-muted-foreground p-3">{t.messages.loading}</div>
+                      <div className="text-sm text-muted-foreground p-3">Loading...</div>
                     ) : chats.length === 0 ? (
-                      <div className="text-sm text-muted-foreground p-3">{t.messages.noChats}</div>
+                      <div className="text-sm text-muted-foreground p-3">No chats</div>
                     ) : (
                       chats.map((chat) => {
                         const title = chat.otherUser?.fullName ?? 'Unknown';
@@ -432,7 +423,7 @@ export default function MessagesPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium truncate">{title}</div>
                                 <div className="text-sm text-muted-foreground truncate">
-                                  {lastMessage?.content || t.messages.noMessagesYet}
+                                  {lastMessage?.content || 'No messages yet'}
                                 </div>
                               </div>
                             </div>
@@ -456,7 +447,7 @@ export default function MessagesPage() {
                       <div>
                         <div className="font-medium">{otherMember?.fullName ?? 'Direct Chat'}</div>
                         <div className="text-sm text-muted-foreground">
-                          {connected ? t.messages.connected : t.messages.connecting}
+                          {connected ? 'Connected' : 'Connecting...'}
                         </div>
                       </div>
                     </div>
@@ -485,7 +476,7 @@ export default function MessagesPage() {
                                     <p className="text-sm break-words whitespace-pre-wrap">{message.content}</p>
                                   </div>
                                   <div className={`text-xs text-muted-foreground mt-1 flex items-center gap-1 ${isOwn ? 'justify-end' : ''}`}>
-                                    {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}
+                                    {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                                     {isOwn && (
                                       <span className={`inline-flex items-center gap-1 ${message.isRead ? 'text-blue-500' : 'text-gray-400'}`}>
                                         {message.isRead ? (
@@ -493,14 +484,14 @@ export default function MessagesPage() {
                                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                             </svg>
-                                            {t.messages.read}
+                                            Read
                                           </>
                                         ) : (
                                           <>
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            {t.messages.sent}
+                                            Sent
                                           </>
                                         )}
                                       </span>
@@ -517,7 +508,7 @@ export default function MessagesPage() {
                     <div className="p-4 border-t">
                       <div className="flex gap-2">
                         <Input
-                          placeholder={t.messages.typeMessage}
+                          placeholder="Type a message..."
                           value={messageInput}
                           onChange={(e) => setMessageInput(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -530,7 +521,7 @@ export default function MessagesPage() {
                   </>
                 ) : (
                   <CardContent className="flex-1 flex items-center justify-center">
-                    <p className="text-muted-foreground">{t.messages.selectChat}</p>
+                    <p className="text-muted-foreground">Select a chat to start messaging</p>
                   </CardContent>
                 )}
               </Card>

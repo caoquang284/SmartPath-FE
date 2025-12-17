@@ -36,13 +36,10 @@ import { useMemo } from 'react';
 
 import { useNotifications } from '@/hooks/use-notification';
 import { notificationAPI } from '@/lib/api/notificationAPI';
-import { LanguageSwitcher } from './LanguageSwitcher';
-import { useLanguage } from '@/context/LanguageContext';
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
   const { profile, logout } = useAuth();
-  const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -61,12 +58,12 @@ export function Navbar() {
 
   // Chia nav links: public vs. chỉ dành cho user đăng nhập
   const publicLinks = [
-    { href: '/forum', label: t.nav.forum },
-    { href: '/materials', label: t.nav.materials },
+    { href: '/forum', label: 'Diễn đàn' },
+    { href: '/materials', label: 'Tài liệu' },
   ];
   const authedOnlyLinks = [
-    { href: '/friends', label: t.nav.friends },
-    { href: '/chatbot', label: t.nav.chatbot },
+    { href: '/friends', label: 'Bạn bè' },
+    { href: '/chatbot', label: 'Chatbot' },
   ];
 
   const { items, unread, loading, markRead, removeLocal, refresh } = useNotifications({
@@ -244,23 +241,23 @@ export function Navbar() {
 
                   <DropdownMenuContent align="end" className="w-96 p-0">
                     <div className="flex items-center justify-between px-3 py-2">
-                      <DropdownMenuLabel className="p-0">{t.nav.notifications}</DropdownMenuLabel>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={refresh} title={t.common.refresh}>
-                          <ExternalLink className="h-4 w-4 mr-1" /> {t.common.refresh}
+                      <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={refresh}>
+                          <ExternalLink className="h-4 w-4 mr-1" /> Refresh
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={handleClearRead} title={t.nav.clearRead}>
-                          <Eraser className="h-4 w-4 mr-1" /> {t.nav.clearRead}
+                        <Button variant="ghost" size="sm" onClick={handleClearRead} title="Clear read">
+                          <Eraser className="h-4 w-4 mr-1" /> Clear read
                         </Button>
                       </div>
                     </div>
                     <DropdownMenuSeparator />
 
                     {loading ? (
-                      <div className="p-4 text-sm text-muted-foreground">{t.common.loading}</div>
+                      <div className="p-4 text-sm text-muted-foreground">Đang tải...</div>
                     ) : items.length === 0 ? (
                       <div className="p-4 text-sm text-muted-foreground text-center">
-                        {t.nav.noNotifications}
+                        Không có thông báo
                       </div>
                     ) : (
                       <div className="max-h-[360px] overflow-auto">
@@ -276,7 +273,7 @@ export function Navbar() {
                               <button
                                 onClick={() => handleOpen(n)}
                                 className="text-left w-full"
-                                title={t.common.open}
+                                title="Open"
                               >
                                 <div className="font-medium line-clamp-2">{n.content}</div>
                                 <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -291,7 +288,7 @@ export function Navbar() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  title={t.nav.markAsRead}
+                                  title="Đánh dấu đã đọc"
                                   onClick={() => markRead(n.id)}
                                 >
                                   <Check className="h-4 w-4" />
@@ -300,7 +297,7 @@ export function Navbar() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                title={t.common.delete}
+                                title="Xóa thông báo"
                                 onClick={() => handleDelete(n.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -312,8 +309,6 @@ export function Navbar() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <LanguageSwitcher />
 
                 <Button
                   variant="ghost"
@@ -353,27 +348,27 @@ export function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href={`/profile/${profile?.id}`} className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
-                        {t.nav.profile}
+                        Profile
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="cursor-pointer">
                         <Settings className="mr-2 h-4 w-4" />
-                        {t.nav.dashboard}
+                        Dashboard
                       </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="cursor-pointer">
                           <Settings className="mr-2 h-4 w-4" />
-                          {t.nav.admin}
+                          Admin Panel
                         </Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
-                      {t.common.signOut}
+                      Sign Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -384,7 +379,6 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <LanguageSwitcher />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -396,10 +390,10 @@ export function Navbar() {
                 </Button>
 
                 <Link href="/auth/login">
-                  <Button variant="ghost">{t.common.signIn}</Button>
+                  <Button variant="ghost">Sign In</Button>
                 </Link>
                 <Link href="/auth/register">
-                  <Button>{t.common.signUp}</Button>
+                  <Button>Register</Button>
                 </Link>
               </>
             )}

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { vi, enUS } from 'date-fns/locale';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,6 @@ import type { UIPost } from '@/lib/mappers/postMapper';
 import { useBadgesCatalog, pickPrimaryBadgeByPoints } from '@/hooks/use-badge-catalog';
 import { BadgePillFancy } from './BadgePillFancy';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
 
 interface PostCardProps {
   post: UIPost & {
@@ -36,7 +34,6 @@ export function PostCard({
   signInHint,
 }: PostCardProps) {
   const { profile } = useAuth();
-  const { locale } = useLanguage();
   const liked = typeof isLiked === 'boolean' ? isLiked : post.isPositiveReacted === true;
   const disliked = typeof isDisliked === 'boolean' ? isDisliked : post.isNegativeReacted === true;
 
@@ -72,11 +69,11 @@ export function PostCard({
 
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}
+                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                 </p>
                 {post.reviewedAt && (
                   <p className="text-xs text-muted-foreground">
-                    • Reviewed {formatDistanceToNow(new Date(post.reviewedAt), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}
+                    • Reviewed {formatDistanceToNow(new Date(post.reviewedAt), { addSuffix: true })}
                   </p>
                 )}
               </div>

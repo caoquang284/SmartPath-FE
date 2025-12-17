@@ -3,9 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
 import { materialCategoryAPI, studyMaterialAPI } from '@/lib/api/studyMaterialAPI';
 import { MaterialCategory, StudyMaterialResponse, MaterialStatus, SourceType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -90,7 +88,6 @@ function TreeNode({
   onSelect,
   parentPath
 }: TreeNodeProps) {
-  const { t } = useLanguage();
   const fullPath = [...parentPath, category.name];
 
   const nodeColors = [
@@ -166,7 +163,7 @@ function TreeNode({
               <div className="text-xs text-gray-300">{fullPath.slice(0, -1).join(' → ')}</div>
             )}
             {materialCount > 0 && (
-              <div className="text-xs text-blue-300">{materialCount} {t.materials.materials}</div>
+              <div className="text-xs text-blue-300">{materialCount} tài liệu</div>
             )}
           </div>
         </div>
@@ -181,13 +178,13 @@ function TreeNode({
           {isSelected && (
             <div className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              {t.materials.selected}
+              Đã chọn
             </div>
           )}
           {isHighlighted && (
             <div className="text-xs text-yellow-500 font-semibold flex items-center gap-1">
               <Star className="w-3 h-3 fill-current" />
-              {t.materials.viewing}
+              Đang xem
             </div>
           )}
         </div>
@@ -214,7 +211,6 @@ function SkillTreeContainer({
   onToggleCategory: (categoryId: string) => void;
   onSelectCategory: (categoryId: string) => void;
 }) {
-  const { t } = useLanguage();
   const renderTreeWithConnections = (children: MaterialCategory[], parent: MaterialCategory, level: number, parentPath: string[]) => {
     return (
       <div className="flex flex-col items-center">
@@ -231,7 +227,7 @@ function SkillTreeContainer({
 
             return (
               <div
-                key={`${child.id}-${index}`}
+                key={child.id}
                 className="flex flex-col items-center relative"
               >
                 {/* Horizontal connectors */}
@@ -279,10 +275,10 @@ function SkillTreeContainer({
   const renderTree = (cats: MaterialCategory[], level: number = 0, parentPath: string[] = []) => {
     return (
       <div className={`flex flex-wrap justify-center ${level === 0 ? 'gap-16' : 'gap-12'} mb-8 relative z-10`}>
-        {cats.map((category, index) => {
+        {cats.map((category) => {
           const materialCount = categoryMaterials.get(category.id)?.length || 0;
           return (
-            <div key={`${category.id}-${index}`} className="flex flex-col items-center relative">
+            <div key={category.id} className="flex flex-col items-center relative">
               <TreeNode
                 category={category}
                 level={level}
@@ -316,7 +312,7 @@ function SkillTreeContainer({
       <div className="sticky top-0 z-10 p-6 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="flex items-center justify-center">
           <Target className="w-6 h-6 text-blue-500 mr-2" />
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t.materials.knowledgeTree}</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Cây Kiến Thức</h2>
         </div>
       </div>
       <div className="p-6 overflow-x-auto overflow-y-auto" style={{ maxHeight: '70vh' }}>
@@ -330,19 +326,9 @@ function SkillTreeContainer({
 
 // Material Card Component
 function MaterialCard({ material, categoryPath }: { material: StudyMaterialResponse; categoryPath: string }) {
-  const { t } = useLanguage();
   const materialStatus = getStatusFromMaterial(material);
   const status = statusConfig[materialStatus] || statusConfig[MaterialStatus.Pending];
   const StatusIcon = status.icon;
-
-  const getStatusLabel = (s: MaterialStatus) => {
-    switch (s) {
-      case MaterialStatus.Pending: return t.materials.statusPending;
-      case MaterialStatus.Accepted: return t.materials.statusApproved;
-      case MaterialStatus.Rejected: return t.materials.statusRejected;
-      default: return t.materials.statusPending;
-    }
-  };
 
   return (
     <div>
@@ -375,7 +361,7 @@ function MaterialCard({ material, categoryPath }: { material: StudyMaterialRespo
             </div>
             <Badge className={`shrink-0 ${status.color}`}>
               <StatusIcon className="h-3 w-3 mr-1" />
-              {getStatusLabel(materialStatus)}
+              {status.label}
             </Badge>
           </div>
         </CardHeader>
@@ -391,7 +377,7 @@ function MaterialCard({ material, categoryPath }: { material: StudyMaterialRespo
 
             {materialStatus === MaterialStatus.Rejected && material.rejectReason && (
               <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                <strong>{t.materials.rejectReason}:</strong> {material.rejectReason}
+                <strong>Lý do từ chối:</strong> {material.rejectReason}
               </div>
             )}
 
@@ -401,7 +387,7 @@ function MaterialCard({ material, categoryPath }: { material: StudyMaterialRespo
                   <Link href={material.fileUrl || '#'} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm">
                       <FileText className="h-4 w-4 mr-2" />
-                      {t.materials.viewMaterial}
+                      Xem tài liệu
                       <ExternalLink className="h-3 w-3 ml-2" />
                     </Button>
                   </Link>
@@ -409,7 +395,7 @@ function MaterialCard({ material, categoryPath }: { material: StudyMaterialRespo
                   <Link href={material.sourceUrl || '#'} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm">
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      {t.materials.openLink}
+                      Mở liên kết
                     </Button>
                   </Link>
                 )}
@@ -443,7 +429,6 @@ const getCategoryIdsWithDescendants = (selectedIds: string[], categories: Materi
 };
 
 export default function MaterialsPage() {
-  const { t } = useLanguage();
   const { profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -583,15 +568,16 @@ export default function MaterialsPage() {
   const displayMaterials = getDisplayMaterials();
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-4xl font-bold text-foreground">
-            {t.materials.title}
+            Thư viện Kiến Thức
           </h1>
           <p className="text-muted-foreground text-lg">
-            {t.materials.subtitle}
+            Khám phá tài liệu học tập theo cây kiến thức tương tác
           </p>
         </div>
 
@@ -601,20 +587,20 @@ export default function MaterialsPage() {
               <Link href="/materials/my-materials">
                 <Button variant="outline">
                   <Folder className="mr-2 h-4 w-4" />
-                  {t.materials.myMaterials}
+                  Tài liệu của tôi
                 </Button>
               </Link>
               <Link href="/materials/upload">
                 <Button>
                   <Upload className="mr-2 h-4 w-4" />
-                  {t.materials.uploadMaterial}
+                  Đăng tài liệu
                 </Button>
               </Link>
             </>
           ) : (
             <Link href="/auth/login">
               <Button variant="outline">
-                {t.materials.loginToUpload}
+                Đăng nhập để đăng tài liệu
               </Button>
             </Link>
           )}
@@ -623,11 +609,11 @@ export default function MaterialsPage() {
 
       {/* Instructions */}
       <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 border border-gray-200 dark:border-gray-800">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">{t.materials.instructions}:</h3>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Hướng dẫn sử dụng:</h3>
         <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-          <div>• <strong>{t.materials.clickNode}</strong> {t.materials.toSelect}</div>
-          <div>• <strong>{t.materials.clickArrow}</strong> (▼) {t.materials.toExpand}</div>
-          <div>• <strong>{t.materials.selectMultiple}</strong> {t.materials.toViewMultiple}</div>
+          <div>• <strong>Nhấp vào node</strong> để chọn/deselect nhiều danh mục (hiển thị viền xanh)</div>
+          <div>• <strong>Nhấp vào mũi tên</strong> (▼) bên dưới node có con để mở/thu gọn danh mục con</div>
+          <div>• <strong>Chọn nhiều node</strong> để xem tài liệu từ nhiều danh mục cùng lúc</div>
         </div>
       </div>
 
@@ -649,7 +635,7 @@ export default function MaterialsPage() {
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
               <span className="font-semibold text-yellow-800 dark:text-yellow-200">
-                {t.materials.viewing}: {getCategoryPath(highlightedCategory)}
+                Đang xem: {getCategoryPath(highlightedCategory)}
               </span>
             </div>
           </div>
@@ -674,46 +660,36 @@ export default function MaterialsPage() {
           <Card>
             <CardContent className="p-12 text-center">
               <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
-              <h3 className="text-xl font-semibold mb-3">{t.materials.noMaterialsFound}</h3>
+              <h3 className="text-xl font-semibold mb-3">Không tìm thấy tài liệu</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 {selectedCategories.length === 0
-                  ? t.materials.noMaterialsInLibrary
-                  : t.materials.noMaterialsInSelection
+                  ? "Chưa có tài liệu nào trong thư viện. Hãy đóng góp tài liệu ngay!"
+                  : "Không có tài liệu nào trong danh mục đã chọn"
                 }
               </p>
               {profile && (
                 <Link href="/materials/upload">
                   <Button>
                     <Upload className="mr-2 h-4 w-4" />
-                    {t.materials.uploadFirstMaterial}
+                    Đăng tài liệu đầu tiên
                   </Button>
                 </Link>
               )}
             </CardContent>
           </Card>
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayMaterials.map((item, index) => (
-                <motion.div
-                  key={`${item.material.id}-${item.categoryPath}-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                >
-                  <MaterialCard
-                    material={item.material}
-                    categoryPath={item.categoryPath}
-                  />
-                </motion.div>
+                <MaterialCard
+                  key={`${item.material.id}-${item.categoryPath}`}
+                  material={item.material}
+                  categoryPath={item.categoryPath}
+                />
               ))}
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
+  </div>
   );
 }

@@ -4,11 +4,9 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { Award, BookOpen, MessageSquare, TrendingUp, XCircle, AlertCircle } from 'lucide-react';
@@ -21,7 +19,6 @@ import type { SystemLog } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 import { mapPostToUI, type UIPost } from '@/lib/mappers/postMapper';
-import { useLanguage } from '@/context/LanguageContext';
 
 type DashboardStats = {
   reputation: number;
@@ -195,8 +192,7 @@ async function enrichActivityIfComment(
   const ts = parseFlexibleDate((log as any).created_at ?? (log as any).createdAt)?.getTime() ?? 0;
 
   try {
-    const result = await commentAPI.getByPost(postId);
-    const list = result.items || [];
+    const list = await commentAPI.getByPost(postId);
     // chỉ xét comment do chính user tạo
     const mine = list.filter((c: any) => String(c.authorId) === String(currentUserId));
     if (!mine.length) return item;
@@ -232,7 +228,6 @@ async function enrichActivityIfComment(
 export default function DashboardPage() {
   const { profile } = useAuth();
   const router = useRouter();
-  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
@@ -244,6 +239,27 @@ export default function DashboardPage() {
   });
   const [recent, setRecent] = useState<ActivityItem[]>([]);
 
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <p className="text-muted-foreground">
+                Đăng nhập để sử dụng tính năng này
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    );
+  }
+
   const loadData = useCallback(async () => {
     if (!profile?.id) return;
 
@@ -251,7 +267,7 @@ export default function DashboardPage() {
     try {
       // ----- Stats (giữ nguyên logic cũ) -----
       const rawPosts = await postAPI.getByUser(profile.id);
-      const posts: UIPost[] = rawPosts.items.map(mapPostToUI);
+      const posts: UIPost[] = rawPosts.map(mapPostToUI);
       const postsCount = posts.length;
       const rejectedPostsCount = posts.filter(p => p.status === 'Rejected').length;
 
@@ -270,8 +286,7 @@ export default function DashboardPage() {
       );
       commentsByPostSettled.forEach((res) => {
         if (res.status !== 'fulfilled') return;
-        const comments = res.value.items || [];
-        for (const c of comments) {
+        for (const c of res.value) {
           if (c.authorId === profile.id) {
             myCommentsCount += 1;
             myCommentIds.push(c.id);
@@ -325,7 +340,7 @@ export default function DashboardPage() {
     if (loading) {
       return (
         <p className="text-muted-foreground text-center py-8">
-          {t.dashboard.loadingActivity}
+          Đang tải hoạt động gần đây...
         </p>
       );
     }
@@ -333,7 +348,7 @@ export default function DashboardPage() {
     if (!recent.length) {
       return (
         <p className="text-muted-foreground text-center py-8">
-          {t.dashboard.noActivity}
+          Chưa có hoạt động nào
         </p>
       );
     }
@@ -373,7 +388,7 @@ export default function DashboardPage() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {renderRelative(item.createdAt)}
-                  {!item.href && ` · (${t.dashboard.noLink})`}
+                  {!item.href && ' · (không có link)'}
                 </p>
               </div>
               {IconFor(item.icon)}
@@ -382,28 +397,7 @@ export default function DashboardPage() {
         })}
       </ul>
     );
-  }, [recent, loading, router, t]);
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navbar />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
-              <p className="text-muted-foreground">
-                {t.common.signInRequired}
-              </p>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-    );
-  }
+  }, [recent, loading, router]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -413,134 +407,93 @@ export default function DashboardPage() {
         <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
+              <h1 className="text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground">
-                {t.dashboard.welcome}, {profile?.fullName ?? profile?.username ?? 'User'}
+                Welcome back, {profile?.fullName ?? profile?.username ?? 'User'}
               </p>
             </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1, duration: 0.5 }}
-              >
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t.dashboard.reputation}</CardTitle>
-                    <Award className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats.reputation}</div>
-                    <p className="text-xs text-muted-foreground">{t.dashboard.totalPoints}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Reputation</CardTitle>
+                  <Award className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.reputation}</div>
+                  <p className="text-xs text-muted-foreground">Total points earned</p>
+                </CardContent>
+              </Card>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t.dashboard.posts}</CardTitle>
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {loading ? '—' : stats.postsCount}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t.dashboard.contributions}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Posts</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {loading ? '—' : stats.postsCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Your contributions</p>
+                </CardContent>
+              </Card>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t.dashboard.materials}</CardTitle>
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {loading ? '—' : stats.materialsCount}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {t.dashboard.filesOnPosts}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Materials</CardTitle>
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {loading ? '—' : stats.materialsCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Files on your posts & comments
+                  </p>
+                </CardContent>
+              </Card>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t.dashboard.rank}</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">N/A</div>
-                    <p className="text-xs text-muted-foreground">{t.dashboard.communityRanking}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </motion.div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Rank</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">N/A</div>
+                  <p className="text-xs text-muted-foreground">Community ranking</p>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Rejected Posts Alert */}
             {!loading && stats.rejectedPostsCount > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                <Card className="border-red-200 bg-red-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-700">
-                      <XCircle className="h-5 w-5" />
-                      {t.dashboard.rejectedPostsAttention}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-red-600 mb-4">
-                      {t.dashboard.youHave} {stats.rejectedPostsCount} {t.dashboard.rejectedPostsCount} {t.dashboard.needAttention}.
-                    </p>
-                    <Link href="/forum/rejected">
-                      <Button variant="outline" className="text-red-700 border-red-300 hover:bg-red-100">
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        {t.dashboard.viewRejectedPosts}
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-red-700">
+                    <XCircle className="h-5 w-5" />
+                    Rejected Posts Need Attention
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-red-600 mb-4">
+                    You have {stats.rejectedPostsCount} rejected {stats.rejectedPostsCount === 1 ? 'post' : 'posts'} that need your attention.
+                  </p>
+                  <Link href="/forum/rejected">
+                    <Button variant="outline" className="text-red-700 border-red-300 hover:bg-red-100">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      View Rejected Posts
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
             )}
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t.dashboard.recentActivity}</CardTitle>
-                </CardHeader>
-                <CardContent>{RecentActivity}</CardContent>
-              </Card>
-            </motion.div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>{RecentActivity}</CardContent>
+            </Card>
           </div>
         </main>
       </div>
