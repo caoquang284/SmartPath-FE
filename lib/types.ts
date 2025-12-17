@@ -568,8 +568,6 @@ export interface MoveCategoryRequest {
 export interface SearchRequest {
   query: string;
   searchType?: 'All' | 'Posts' | 'StudyMaterials';
-  categoryIds?: string[];
-  materialCategoryIds?: string[];
   isQuestion?: boolean | null;
   includeSemanticSearch?: boolean;
   includeKeywordSearch?: boolean;
@@ -749,7 +747,6 @@ export interface EnhancedPostResponse extends PostResponseDto {
     displayName: string;
     avatar?: string | null;
   };
-  categories?: PostSearchCategory[];
   tags?: string[];
   relevanceScore?: number;
   matchType?: 'Exact' | 'Semantic' | 'Keyword' | 'Fuzzy';
@@ -765,7 +762,6 @@ export interface EnhancedStudyMaterialResponse extends StudyMaterialResponse {
   downloadUrl?: string;
   viewCount?: number;
   downloadCount?: number;
-  totalRatings?: number;
   uploader?: {
     id: string;
     username: string;
@@ -779,7 +775,6 @@ export interface EnhancedStudyMaterialResponse extends StudyMaterialResponse {
   highlightedTitle?: string[];
   highlightedDescription?: string[];
   isApproved?: boolean;
-  aiConfidence?: number | null;
 }
 
 // Pagination Response for Search

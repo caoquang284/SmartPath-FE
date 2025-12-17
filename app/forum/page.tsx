@@ -29,29 +29,43 @@ const FETCH_STRATEGIES: Record<
     pageSize?: number;
     includeAll?: boolean;
     isAdmin?: boolean;
+    searchQuery?: string;
   }) => Promise<{ items: PostResponseDto[]; total: number }>
 > = {
   all: async (args = {}) => {
-    const { page = 1, pageSize = 20, includeAll, isAdmin } = args;
+    const { page = 1, pageSize = 20, includeAll, isAdmin, searchQuery } = args;
     const result = await postAPI.getAll({
       page,
       pageSize,
-      includeAll: includeAll || isAdmin
+      includeAll: includeAll || isAdmin,
+      // Note: Backend would need to support search parameter
     });
     return { items: result.items, total: result.total };
   },
   byUser: async (args = {}) => {
     const userId = args.userId;
-    const { page = 1, pageSize = 20, includeAll, isAdmin } = args;
+    const { page = 1, pageSize = 20, includeAll, isAdmin, searchQuery } = args;
     if (!userId) return { items: [], total: 0 };
     const result = await postAPI.getByUser(userId, { page, pageSize });
     return { items: result.items, total: result.total };
   },
   recommended: async (args = {}) => {
-    const { includeAll, isAdmin } = args;
+    const { includeAll, isAdmin, searchQuery } = args;
     // Only get accepted posts for regular users, admins can see all
     const status = (includeAll || isAdmin) ? undefined : 'Accepted';
     const items = await postAPI.getRecommendations(undefined, status);
+
+    // If there's a search query, filter the results on client side
+    // (this is temporary until backend supports search)
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const filteredItems = items.filter(post =>
+        post.title.toLowerCase().includes(q) ||
+        post.content.toLowerCase().includes(q)
+      );
+      return { items: filteredItems, total: filteredItems.length };
+    }
+
     return { items, total: items.length };
   },
 };
@@ -66,7 +80,8 @@ export default function ForumPage() {
 
   const [loading, setLoading] = useState(true);
   const [rawPosts, setRawPosts] = useState<PostResponseDto[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // What user types
+  const [activeSearchQuery, setActiveSearchQuery] = useState(''); // What's actually applied
   const [strategy, setStrategy] = useState<PostFetchStrategy>('recommended');
 
   // Pagination state
@@ -74,7 +89,7 @@ export default function ForumPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize] = useState(20);
 
-  const fetchPosts = useCallback(async (page = currentPage) => {
+  const fetchPosts = useCallback(async (page = currentPage, search = activeSearchQuery) => {
     setLoading(true);
     try {
       const { items, total } = await FETCH_STRATEGIES[strategy]({
@@ -82,7 +97,8 @@ export default function ForumPage() {
         page,
         pageSize,
         includeAll: isAdmin, // Admins can see all statuses
-        isAdmin // Pass admin flag to strategies
+        isAdmin, // Pass admin flag to strategies
+        searchQuery: search
       });
 
       const sorted = [...items].sort(
@@ -96,17 +112,17 @@ export default function ForumPage() {
     } finally {
       setLoading(false);
     }
-  }, [strategy, profile?.id, currentPage, pageSize, isAdmin, toast]);
+  }, [strategy, profile?.id, isAdmin, toast, activeSearchQuery]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Reset to first page when strategy or search changes
+  // Reset to first page when strategy changes
   useEffect(() => {
     setCurrentPage(1);
     fetchPosts(1);
-  }, [strategy, searchQuery]);
+  }, [strategy]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -114,21 +130,14 @@ export default function ForumPage() {
     fetchPosts(page);
   };
 
+  // Handle search
+  const handleSearch = () => {
+    setCurrentPage(1);
+    setActiveSearchQuery(searchInput); // Apply the search input as active search
+    fetchPosts(1, searchInput);
+  };
+
   const uiPosts: UIPost[] = useMemo(() => rawPosts.map(mapPostToUI), [rawPosts]);
-
-  const filteredPosts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return uiPosts.filter(
-      (p) => {
-        // Apply search filter if any
-        const matchesSearch = !q ||
-          p.title.toLowerCase().includes(q) ||
-          p.content.toLowerCase().includes(q);
-
-        return matchesSearch;
-      }
-    );
-  }, [uiPosts, searchQuery]);
 
   type ReactionKind = 'like' | 'dislike';
 
@@ -263,7 +272,7 @@ export default function ForumPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
             <p className="mt-4 text-muted-foreground">Loading recommended posts...</p>
           </div>
-        ) : filteredPosts.length === 0 ? (
+        ) : uiPosts.length === 0 ? (
           <Card className="p-12 text-center">
             <p className="text-muted-foreground">No recommended posts found</p>
             {!isGuest && (
@@ -273,7 +282,7 @@ export default function ForumPage() {
             )}
           </Card>
         ) : (
-          filteredPosts.map((post) => (
+          uiPosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -302,7 +311,7 @@ export default function ForumPage() {
       {/* Results info */}
       {!loading && strategy !== 'recommended' && (
         <div className="text-center text-sm text-muted-foreground">
-          Showing {filteredPosts.length} of {totalItems} posts
+          Showing {uiPosts.length} of {totalItems} posts
         </div>
       )}
     </div>

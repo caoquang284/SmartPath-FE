@@ -453,9 +453,10 @@ export default function AdminCategoriesPage() {
     });
   };
 
-  const handleCreateCategory = async (data: MaterialCategoryCreateRequest) => {
+  const handleCreateCategory = async (data: MaterialCategoryCreateRequest | MaterialCategoryUpdateRequest) => {
     try {
-      await materialCategoryAPI.create(data);
+      // Ensure data matches MaterialCategoryCreateRequest type for create operation
+      await materialCategoryAPI.create(data as MaterialCategoryCreateRequest);
       toast({
         title: 'Thành công',
         description: 'Đã tạo danh mục mới',
