@@ -71,6 +71,13 @@ export interface PostResponseDto {
   isNegativeReacted: boolean | null;
   negativeReactionCount: number;
   positiveReactionCount: number;
+  // AI Review fields
+  status: 'Accepted' | 'Pending' | 'Rejected';
+  rejectReason?: string | null;
+  aiConfidence?: number | null;
+  aiCategoryMatch?: boolean | null;
+  aiReason?: string | null;
+  reviewedAt?: string | null;
 }
 
 export interface PostRequestDto {

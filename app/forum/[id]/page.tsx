@@ -20,6 +20,7 @@ import { mapUserToPostOwner, type PostOwner } from '@/lib/mappers/postOwnerMappe
 
 import { useBadgesCatalog, pickPrimaryBadgeByPoints } from '@/hooks/use-badge-catalog';
 import { BadgePillFancy } from '@/components/forum/BadgePillFancy';
+import { PostStatusBadge } from '@/components/forum/PostStatusBadge';
 
 import {
   mapCommentsToUITree,
@@ -189,6 +190,36 @@ function PostDetailContent() {
       setIsDisliked(post.isNegativeReacted === true);
       setPosCount(post.positiveReactionCount ?? 0);
       setNegCount(post.negativeReactionCount ?? 0);
+
+      // Check if user can view this post
+      const canView = post.status === 'Accepted' ||
+                     (profile && (post.authorId === profile.id || profile.role === 'admin'));
+
+      if (!canView) {
+        toast({
+          title: 'Access Denied',
+          description: 'This post is not available.',
+          variant: 'destructive'
+        });
+        router.push('/forum');
+        return;
+      }
+
+      // Show status notification
+      if (post.status === 'Pending') {
+        toast({
+          title: 'Post Under Review',
+          description: 'This post is currently being reviewed by AI.',
+          duration: 3000
+        });
+      } else if (post.status === 'Rejected' && post.rejectReason) {
+        toast({
+          title: 'Post Rejected',
+          description: post.rejectReason,
+          variant: 'destructive',
+          duration: 5000
+        });
+      }
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to load post', variant: 'destructive' });
@@ -196,7 +227,7 @@ function PostDetailContent() {
     } finally {
       setLoading(false);
     }
-  }, [postId, router, toast]);
+  }, [postId, router, toast, profile]);
 
   const loadMaterials = useCallback(async () => {
     if (!postId) return;
@@ -974,11 +1005,21 @@ function PostDetailContent() {
               >
                 {uiPost.author.full_name}
               </Link>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                 <BadgePillFancy badge={primaryBadge} />
+                <PostStatusBadge
+                  status={uiPost.status}
+                  rejectReason={uiPost.rejectReason}
+                  aiReason={uiPost.aiReason}
+                />
                 <span>
                   {formatDistanceToNow(new Date(uiPost.created_at), { addSuffix: true })}
                 </span>
+                {uiPost.reviewedAt && (
+                  <span>
+                    • Reviewed {formatDistanceToNow(new Date(uiPost.reviewedAt), { addSuffix: true })}
+                  </span>
+                )}
               </div>
             </div>
           </div>

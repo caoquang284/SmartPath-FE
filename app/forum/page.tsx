@@ -23,22 +23,35 @@ type PostFetchStrategy = 'all' | 'byUser' | 'recommended';
 
 const FETCH_STRATEGIES: Record<
   PostFetchStrategy,
-  (args?: { userId?: string; page?: number; pageSize?: number }) => Promise<{ items: PostResponseDto[]; total: number }>
+  (args?: {
+    userId?: string;
+    page?: number;
+    pageSize?: number;
+    includeAll?: boolean;
+    isAdmin?: boolean;
+  }) => Promise<{ items: PostResponseDto[]; total: number }>
 > = {
   all: async (args = {}) => {
-    const { page = 1, pageSize = 20 } = args;
-    const result = await postAPI.getAll({ page, pageSize });
+    const { page = 1, pageSize = 20, includeAll, isAdmin } = args;
+    const result = await postAPI.getAll({
+      page,
+      pageSize,
+      includeAll: includeAll || isAdmin
+    });
     return { items: result.items, total: result.total };
   },
   byUser: async (args = {}) => {
     const userId = args.userId;
-    const { page = 1, pageSize = 20 } = args;
+    const { page = 1, pageSize = 20, includeAll, isAdmin } = args;
     if (!userId) return { items: [], total: 0 };
     const result = await postAPI.getByUser(userId, { page, pageSize });
     return { items: result.items, total: result.total };
   },
-  recommended: async () => {
-    const items = await postAPI.getRecommendations();
+  recommended: async (args = {}) => {
+    const { includeAll, isAdmin } = args;
+    // Only get accepted posts for regular users, admins can see all
+    const status = (includeAll || isAdmin) ? undefined : 'Accepted';
+    const items = await postAPI.getRecommendations(undefined, status);
     return { items, total: items.length };
   },
 };
@@ -49,6 +62,7 @@ export default function ForumPage() {
   const router = useRouter();
 
   const isGuest = !profile?.id;
+  const isAdmin = profile?.role === 'admin';
 
   const [loading, setLoading] = useState(true);
   const [rawPosts, setRawPosts] = useState<PostResponseDto[]>([]);
@@ -66,7 +80,9 @@ export default function ForumPage() {
       const { items, total } = await FETCH_STRATEGIES[strategy]({
         userId: profile?.id,
         page,
-        pageSize
+        pageSize,
+        includeAll: isAdmin, // Admins can see all statuses
+        isAdmin // Pass admin flag to strategies
       });
 
       const sorted = [...items].sort(
@@ -80,7 +96,7 @@ export default function ForumPage() {
     } finally {
       setLoading(false);
     }
-  }, [strategy, profile?.id, currentPage, pageSize, toast]);
+  }, [strategy, profile?.id, currentPage, pageSize, isAdmin, toast]);
 
   useEffect(() => {
     fetchPosts();
@@ -102,9 +118,15 @@ export default function ForumPage() {
 
   const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return uiPosts;
     return uiPosts.filter(
-      (p) => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q)
+      (p) => {
+        // Apply search filter if any
+        const matchesSearch = !q ||
+          p.title.toLowerCase().includes(q) ||
+          p.content.toLowerCase().includes(q);
+
+        return matchesSearch;
+      }
     );
   }, [uiPosts, searchQuery]);
 

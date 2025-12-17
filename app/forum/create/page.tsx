@@ -13,7 +13,7 @@ import { materialAPI } from '@/lib/api/materialAPI';
 
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, ImagePlus, FilePlus2, FileText, Trash2, UploadCloud, ArrowLeft } from 'lucide-react';
+import { X, ImagePlus, FilePlus2, FileText, Trash2, UploadCloud, ArrowLeft, Eye } from 'lucide-react';
 
 import type { PostRequestDto } from '@/lib/types';
 
@@ -23,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RejectedPostDialog } from '@/components/ui/rejected-post-dialog';
 
 type UICategory = { id: string; name: string };
 type QueuedImage = { id: string; file: File; preview: string };
@@ -46,6 +48,10 @@ export default function CreatePostPage() {
   const [images, setImages] = useState<QueuedImage[]>([]);
   const [docs, setDocs] = useState<QueuedDoc[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [rejectedPostDialog, setRejectedPostDialog] = useState<{
+    open: boolean;
+    post: any;
+  }>({ open: false, post: null });
 
   const derivedIsQuestion = title.trim().endsWith('?');
   const isQuestion = isQuestionOverride ?? derivedIsQuestion;
@@ -203,7 +209,23 @@ export default function CreatePostPage() {
         }
       }
 
-      toast({ title: 'Success', description: 'Post created successfully' });
+      // Show appropriate message based on AI review status
+      if (created.status === 'Accepted') {
+        toast({ title: 'Success', description: 'Post published successfully' });
+      } else if (created.status === 'Pending') {
+        toast({
+          title: 'Post submitted for review',
+          description: 'Your post is being reviewed by AI and will be published soon.',
+          duration: 5000
+        });
+      } else if (created.status === 'Rejected') {
+        // Show the rejection dialog instead of redirecting
+        setRejectedPostDialog({
+          open: true,
+          post: created
+        });
+        return; // Don't redirect, let user handle from dialog
+      }
       router.push(`/forum/${postId}`);
     } catch (error) {
       console.error('Failed to create post', error);
@@ -434,6 +456,19 @@ export default function CreatePostPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Rejected Post Dialog */}
+      {rejectedPostDialog.post && (
+        <RejectedPostDialog
+          open={rejectedPostDialog.open}
+          onClose={() => {
+            setRejectedPostDialog({ open: false, post: null });
+            // After closing dialog, redirect to forum
+            router.push('/forum');
+          }}
+          post={rejectedPostDialog.post}
+        />
+      )}
     </div>
   );
 }

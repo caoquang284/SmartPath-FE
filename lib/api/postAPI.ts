@@ -8,6 +8,8 @@ export const postAPI = {
     pageSize?: number;
     categoryIds?: string[];
     isQuestion?: boolean;
+    status?: 'Accepted' | 'Pending' | 'Rejected';
+    includeAll?: boolean; // For admin to see all statuses
   }): Promise<PageResult<PostResponseDto>> => {
     const queryParams = new URLSearchParams();
 
@@ -18,6 +20,14 @@ export const postAPI = {
     }
     if (params?.isQuestion !== undefined) {
       queryParams.append('isQuestion', params.isQuestion.toString());
+    }
+    // Add status filter if specified (default to Accepted)
+    if (params?.includeAll) {
+      // Don't filter by status
+    } else if (params?.status) {
+      queryParams.append('status', params.status);
+    } else {
+      queryParams.append('status', 'Accepted'); // Default to showing only accepted posts
     }
 
     const queryString = queryParams.toString();
@@ -62,15 +72,30 @@ export const postAPI = {
     return fetchWrapper.get(`/category`);
   },
 
-  // Get recommended posts
-  getRecommendations: async (limit?: number): Promise<PostResponseDto[]> => {
+  // Get recommended posts (using getAll with status filter)
+  getRecommendations: async (limit?: number, status?: 'Accepted' | 'Pending' | 'Rejected'): Promise<PostResponseDto[]> => {
     const queryParams = new URLSearchParams();
-    if (limit) queryParams.append('limit', limit.toString());
+    if (limit) queryParams.append('pageSize', limit.toString());
+    if (status) queryParams.append('status', status);
 
     const queryString = queryParams.toString();
-    const url = `/post/recommendations${queryString ? `?${queryString}` : ''}`;
+    const url = `/post${queryString ? `?${queryString}` : ''}`;
 
-    return fetchWrapper.get<PostResponseDto[]>(url);
+    const result = await fetchWrapper.get<PageResult<PostResponseDto>>(url);
+    return result.items;
+  },
+
+  // Admin: Update post status
+  updateStatus: async (postId: string, status: 'Accepted' | 'Pending' | 'Rejected', adminNote?: string): Promise<void> => {
+    return fetchWrapper.put(`/post/${postId}/status`, {
+      status,
+      adminNote
+    });
+  },
+
+  // Admin: Get pending posts
+  getPendingPosts: async (): Promise<PostResponseDto[]> => {
+    return fetchWrapper.get('/post/admin/pending');
   }
 };
 
