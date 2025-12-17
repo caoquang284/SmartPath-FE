@@ -22,13 +22,20 @@ export type UIPost = {
   isPositiveReacted: boolean | null;
   isNegativeReacted: boolean | null;
   positiveReactionCount: number;
-  negativeReactionCount: number
+  negativeReactionCount: number;
+  // AI Review fields
+  status: 'Accepted' | 'Pending' | 'Rejected';
+  rejectReason?: string | null;
+  aiConfidence?: number | null;
+  aiCategoryMatch?: boolean | null;
+  aiReason?: string | null;
+  reviewedAt?: string | null;
 };
 
 export function mapPostToUI(p: PostResponseDto): UIPost {
   return {
     id: p.id,
-    author_id: p.authorId,                       
+    author_id: p.authorId,
     title: p.title,
     content: p.content,
     is_question: p.isQuestion,
@@ -39,8 +46,8 @@ export function mapPostToUI(p: PostResponseDto): UIPost {
       id: p.authorId,
       full_name: p.authorUsername ?? 'Unknown',
       avatar_url: p.authorAvatarUrl ?? null,
-      reputation_points: p.authorPoint,      
-      primaryBadge: null,        
+      reputation_points: p.authorPoint,
+      primaryBadge: null,
     },
 
     comments_count: p.commentCount,
@@ -48,6 +55,13 @@ export function mapPostToUI(p: PostResponseDto): UIPost {
     isPositiveReacted: p.isPositiveReacted,
     isNegativeReacted: p.isNegativeReacted,
     positiveReactionCount: p.positiveReactionCount,
-    negativeReactionCount: p.negativeReactionCount
+    negativeReactionCount: p.negativeReactionCount,
+    // AI Review fields
+    status: p.status,
+    rejectReason: p.rejectReason,
+    aiConfidence: p.aiConfidence,
+    aiCategoryMatch: p.aiCategoryMatch,
+    aiReason: p.aiReason,
+    reviewedAt: p.reviewedAt
   };
 }

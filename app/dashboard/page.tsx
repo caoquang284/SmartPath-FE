@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import Link from 'next/link';
 
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
-import { Award, BookOpen, MessageSquare, TrendingUp } from 'lucide-react';
+import { Award, BookOpen, MessageSquare, TrendingUp, XCircle, AlertCircle } from 'lucide-react';
 
 import { postAPI } from '@/lib/api/postAPI';
 import { commentAPI } from '@/lib/api/commentAPI';
@@ -24,6 +25,7 @@ type DashboardStats = {
   postsCount: number;
   commentsCount: number;
   materialsCount: number;
+  rejectedPostsCount: number;
 };
 
 type ActivityItem = {
@@ -233,6 +235,7 @@ export default function DashboardPage() {
     postsCount: 0,
     commentsCount: 0,
     materialsCount: 0,
+    rejectedPostsCount: 0,
   });
   const [recent, setRecent] = useState<ActivityItem[]>([]);
 
@@ -266,6 +269,7 @@ export default function DashboardPage() {
       const rawPosts = await postAPI.getByUser(profile.id);
       const posts: UIPost[] = rawPosts.map(mapPostToUI);
       const postsCount = posts.length;
+      const rejectedPostsCount = posts.filter(p => p.status === 'Rejected').length;
 
       const materialsByPostSettled = await Promise.allSettled(
         posts.map((p) => materialAPI.listByPost(p.id))
@@ -302,6 +306,7 @@ export default function DashboardPage() {
         postsCount,
         commentsCount: myCommentsCount,
         materialsCount: materialsFromPosts.length + materialsFromMyComments.length,
+        rejectedPostsCount,
       });
 
       // ----- Recent Activity từ SystemLog -----
@@ -459,6 +464,29 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Rejected Posts Alert */}
+            {!loading && stats.rejectedPostsCount > 0 && (
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-red-700">
+                    <XCircle className="h-5 w-5" />
+                    Rejected Posts Need Attention
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-red-600 mb-4">
+                    You have {stats.rejectedPostsCount} rejected {stats.rejectedPostsCount === 1 ? 'post' : 'posts'} that need your attention.
+                  </p>
+                  <Link href="/forum/rejected">
+                    <Button variant="outline" className="text-red-700 border-red-300 hover:bg-red-100">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      View Rejected Posts
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
