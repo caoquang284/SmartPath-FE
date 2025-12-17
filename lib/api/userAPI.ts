@@ -44,26 +44,37 @@ export const userAPI = {
   activityRange: async (startIso: string, endIso: string): Promise<AdminActivityDaily[]> =>
     fetchWrapper.get<AdminActivityDaily[]>(`/user/analytics/activity-range?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`),
 
-  // Get users with search and pagination (for admin)
+  // Get users with search and pagination (simulated client-side for now)
   getUsers: async (params?: {
     q?: string; // search query
     page?: number;
     pageSize?: number;
   }): Promise<PageResult<UserProfile>> => {
-    const queryParams = new URLSearchParams();
+    // Fetch all users since backend doesn't support search/pagination yet
+    const allUsers = await fetchWrapper.get<UserProfile[]>("/user");
+    
+    let filtered = allUsers;
+    if (params?.q) {
+      const lowerQ = params.q.toLowerCase();
+      filtered = allUsers.filter(u => 
+        u.username.toLowerCase().includes(lowerQ) || 
+        u.email.toLowerCase().includes(lowerQ) ||
+        (u.fullName && u.fullName.toLowerCase().includes(lowerQ))
+      );
+    }
 
-    // Set default values
     const page = params?.page ?? 1;
     const pageSize = params?.pageSize ?? 20;
+    const total = filtered.length;
+    const start = (page - 1) * pageSize;
+    const items = filtered.slice(start, start + pageSize);
 
-    queryParams.append('page', page.toString());
-    queryParams.append('pageSize', pageSize.toString());
-
-    if (params?.q) queryParams.append('q', params.q);
-
-    const queryString = queryParams.toString();
-    const url = `/user/search${queryString ? `?${queryString}` : ''}`;
-
-    return fetchWrapper.get<PageResult<UserProfile>>(url);
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    };
   },
 };

@@ -103,7 +103,7 @@ function TreeNode({
 
   return (
     <div
-      className="relative animate-fade-in"
+      className="relative animate-fade-in flex flex-col items-center"
       style={{ animationDelay: `${level * 0.1}s` }}
     >
 
@@ -135,25 +135,25 @@ function TreeNode({
               {materialCount}
             </div>
           )}
-
-          {/* Expand/Collapse Button */}
-          {category.children && category.children.length > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggle(category.id);
-              }}
-              className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-200 dark:bg-gray-700 rounded-full p-1 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            >
-              <ChevronRight
-                className={`w-3 h-3 transition-transform duration-300 ${
-                  isExpanded ? 'rotate-90' : ''
-                }`}
-              />
-            </button>
-          )}
-        </div>
+          </div>
         </button>
+
+        {/* Expand/Collapse Button */}
+        {category.children && category.children.length > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(category.id);
+            }}
+            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-200 dark:bg-gray-700 rounded-full p-1 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors z-30"
+          >
+            <ChevronRight
+              className={`w-3 h-3 transition-transform duration-300 ${
+                isExpanded ? 'rotate-90' : ''
+              }`}
+            />
+          </button>
+        )}
 
         {/* Tooltip */}
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
@@ -213,78 +213,37 @@ function SkillTreeContainer({
 }) {
   const renderTreeWithConnections = (children: MaterialCategory[], parent: MaterialCategory, level: number, parentPath: string[]) => {
     return (
-      <div className="relative">
+      <div className="flex flex-col items-center">
         {/* Vertical line from parent down */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 -top-12 z-10">
-          <svg width="4" height="48" className="overflow-visible drop-shadow-lg" style={{ filter: 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.5))' }}>
-            <defs>
-              <linearGradient id={`gradient-${parent.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.9"/>
-                <stop offset="50%" stopColor="#A78BFA" stopOpacity="1"/>
-                <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.9"/>
-              </linearGradient>
-            </defs>
-            <path
-              d="M 2 0 L 2 48"
-              stroke={`url(#gradient-${parent.id})`}
-              strokeWidth="3"
-              fill="none"
-              className="animate-pulse"
-            />
-            <circle r="2" fill="#ffffff" opacity="0.8">
-              <animateMotion dur="2s" repeatCount="indefinite" path="M 2 0 L 2 48"/>
-            </circle>
-          </svg>
-        </div>
+        <div className="w-0.5 h-8 bg-slate-300 dark:bg-slate-600"></div>
 
-        {/* Horizontal line across all children */}
-        {children.length > 1 && (
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 z-10">
-            <svg width={(children.length - 1) * 80} height="4" className="overflow-visible drop-shadow-lg" style={{ filter: 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.5))' }}>
-              <defs>
-                <linearGradient id={`h-gradient-${parent.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.9"/>
-                  <stop offset="50%" stopColor="#A78BFA" stopOpacity="1"/>
-                  <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.9"/>
-                </linearGradient>
-              </defs>
-              <path
-                d={`M 0 2 L ${(children.length - 1) * 80} 2`}
-                stroke={`url(#h-gradient-${parent.id})`}
-                strokeWidth="3"
-                fill="none"
-                className="animate-pulse"
-              />
-            </svg>
-          </div>
-        )}
-
-        {/* Child nodes */}
-        <div className="flex justify-center gap-6 mt-4 relative z-20">
+        {/* Children container */}
+        <div className="flex justify-center gap-8 relative">
           {children.map((child, index) => {
             const materialCount = categoryMaterials.get(child.id)?.length || 0;
-            const xOffset = children.length > 1 ? (index - (children.length - 1) / 2) * 80 : 0;
+            const isFirst = index === 0;
+            const isLast = index === children.length - 1;
+            const isSingle = children.length === 1;
 
             return (
               <div
                 key={child.id}
-                className="flex flex-col items-center relative z-20"
-                style={children.length > 1 ? { marginLeft: `${xOffset}px` } : {}}
+                className="flex flex-col items-center relative"
               >
-                {/* Vertical connection from horizontal line to child */}
-                {children.length > 1 && (
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-10">
-                    <svg width="4" height="32" className="overflow-visible drop-shadow-lg" style={{ filter: 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.5))' }}>
-                      <path
-                        d="M 2 0 L 2 32"
-                        stroke={`url(#h-gradient-${parent.id})`}
-                        strokeWidth="3"
-                        fill="none"
-                        className="animate-pulse"
-                      />
-                    </svg>
-                  </div>
+                {/* Horizontal connectors */}
+                {!isSingle && (
+                  <>
+                    {!isFirst && (
+                      <div className="absolute top-0 right-1/2 w-[calc(50%+16px)] h-0.5 bg-slate-300 dark:bg-slate-600"></div>
+                    )}
+                    {!isLast && (
+                      <div className="absolute top-0 left-1/2 w-[calc(50%+16px)] h-0.5 bg-slate-300 dark:bg-slate-600"></div>
+                    )}
+                  </>
                 )}
+
+                {/* Vertical line to child */}
+                <div className="w-0.5 h-8 bg-slate-300 dark:bg-slate-600"></div>
 
                 <TreeNode
                   category={child}
@@ -301,7 +260,7 @@ function SkillTreeContainer({
 
                 {/* Recursively render grandchildren */}
                 {child.children && child.children.length > 0 && expandedCategories.includes(child.id) && (
-                  <div className="relative mt-12">
+                  <div className="relative">
                     {renderTreeWithConnections(child.children, child, level + 1, [...parentPath, child.name])}
                   </div>
                 )}
@@ -337,7 +296,7 @@ function SkillTreeContainer({
               {category.children &&
                category.children.length > 0 &&
                expandedCategories.includes(category.id) && (
-                <div className="relative mt-8">
+                <div className="relative">
                   {renderTreeWithConnections(category.children, category, level + 1, [...parentPath, category.name])}
                 </div>
               )}
@@ -449,16 +408,47 @@ function MaterialCard({ material, categoryPath }: { material: StudyMaterialRespo
   );
 }
 
+// Helper to get all category IDs including children for filtering
+const getCategoryIdsWithDescendants = (selectedIds: string[], categories: MaterialCategory[]): Set<string> => {
+  const result = new Set<string>();
+  
+  const traverse = (nodes: MaterialCategory[], parentSelected: boolean) => {
+    for (const node of nodes) {
+      const isSelected = parentSelected || selectedIds.includes(node.id);
+      if (isSelected) {
+        result.add(node.id);
+      }
+      if (node.children) {
+        traverse(node.children, isSelected);
+      }
+    }
+  };
+  
+  traverse(categories, false);
+  return result;
+};
+
 export default function MaterialsPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [materials, setMaterials] = useState<StudyMaterialResponse[]>([]);
+  const [allMaterials, setAllMaterials] = useState<StudyMaterialResponse[]>([]);
   const [categories, setCategories] = useState<MaterialCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null);
-  const [categoryMaterials, setCategoryMaterials] = useState<Map<string, StudyMaterialResponse[]>>(new Map());
+  
+  // Derived state for category counts
+  const categoryMaterials = useMemo(() => {
+    const map = new Map<string, StudyMaterialResponse[]>();
+    allMaterials.forEach(mat => {
+      const list = map.get(mat.categoryId) || [];
+      list.push(mat);
+      map.set(mat.categoryId, list);
+    });
+    return map;
+  }, [allMaterials]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -488,38 +478,21 @@ export default function MaterialsPage() {
     fetchCategories();
   }, [toast]);
 
-  // Fetch materials for selected categories
+  // Fetch all materials on mount
   useEffect(() => {
-    if (selectedCategories.length === 0) return;
-
-    const fetchMaterials = async () => {
+    const fetchAllMaterials = async () => {
       setLoading(true);
       try {
-        const materialsMap = new Map<string, StudyMaterialResponse[]>();
-
-        // Fetch materials for each selected category
-        const promises = selectedCategories.map(async (categoryId) => {
-          try {
-            const response = await studyMaterialAPI.search({
-              categoryId,
-              status: 1, // 1 = Accepted
-              page: 1,
-              pageSize: 100, // Get more materials for each category
-            });
-            materialsMap.set(categoryId, response.items);
-          } catch (error) {
-            console.error(`Failed to fetch materials for category ${categoryId}:`, error);
-            materialsMap.set(categoryId, []);
-          }
+        const response = await studyMaterialAPI.search({
+          status: 1, // 1 = Accepted
+          page: 1,
+          pageSize: 1000, // Get all materials (or a large number)
         });
-
-        await Promise.all(promises);
-        setCategoryMaterials(materialsMap);
-
-        // Combine all materials for display
-        const allMaterials = Array.from(materialsMap.values()).flat();
-        setMaterials(allMaterials);
-        setTotalCount(allMaterials.length);
+        
+        // Deduplicate materials by ID just in case
+        const uniqueMaterials = Array.from(new Map(response.items.map(item => [item.id, item])).values());
+        setAllMaterials(uniqueMaterials);
+        setTotalCount(response.total);
       } catch (error) {
         console.error('Failed to fetch materials:', error);
         toast({
@@ -527,15 +500,15 @@ export default function MaterialsPage() {
           description: 'Không tải được tài liệu học tập',
           variant: 'destructive',
         });
-        setMaterials([]);
+        setAllMaterials([]);
         setTotalCount(0);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMaterials();
-  }, [selectedCategories, toast]);
+    fetchAllMaterials();
+  }, [toast]);
 
   const toggleCategoryExpansion = (categoryId: string) => {
     setExpandedCategories(prev =>
@@ -574,25 +547,22 @@ export default function MaterialsPage() {
   };
 
   const getDisplayMaterials = () => {
+    let filtered = allMaterials;
+
+    // Filter by highlighted category (highest priority)
     if (highlightedCategory) {
-      const categoryMats = categoryMaterials.get(highlightedCategory) || [];
-      return categoryMats.map(material => ({
-        material,
-        categoryPath: getCategoryPath(highlightedCategory)
-      }));
+      filtered = filtered.filter(m => m.categoryId === highlightedCategory);
+    } 
+    // Filter by selected categories
+    else if (selectedCategories.length > 0) {
+      const allowedIds = getCategoryIdsWithDescendants(selectedCategories, categories);
+      filtered = filtered.filter(m => allowedIds.has(m.categoryId));
     }
-    return materials.map(material => {
-      // Find which category this material belongs to
-      for (const [categoryId, categoryMats] of Array.from(categoryMaterials.entries())) {
-        if (categoryMats.some(m => m.id === material.id)) {
-          return {
-            material,
-            categoryPath: getCategoryPath(categoryId)
-          };
-        }
-      }
-      return { material, categoryPath: 'Unknown' };
-    });
+
+    return filtered.map(material => ({
+      material,
+      categoryPath: material.categoryPath || getCategoryPath(material.categoryId)
+    }));
   };
 
   const displayMaterials = getDisplayMaterials();
@@ -603,7 +573,7 @@ export default function MaterialsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-foreground">
             Thư viện Kiến Thức
           </h1>
           <p className="text-muted-foreground text-lg">
@@ -621,7 +591,7 @@ export default function MaterialsPage() {
                 </Button>
               </Link>
               <Link href="/materials/upload">
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+                <Button>
                   <Upload className="mr-2 h-4 w-4" />
                   Đăng tài liệu
                 </Button>
@@ -638,9 +608,9 @@ export default function MaterialsPage() {
       </div>
 
       {/* Instructions */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-        <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Hướng dẫn sử dụng:</h3>
-        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+      <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 border border-gray-200 dark:border-gray-800">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Hướng dẫn sử dụng:</h3>
+        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
           <div>• <strong>Nhấp vào node</strong> để chọn/deselect nhiều danh mục (hiển thị viền xanh)</div>
           <div>• <strong>Nhấp vào mũi tên</strong> (▼) bên dưới node có con để mở/thu gọn danh mục con</div>
           <div>• <strong>Chọn nhiều node</strong> để xem tài liệu từ nhiều danh mục cùng lúc</div>
@@ -693,13 +663,13 @@ export default function MaterialsPage() {
               <h3 className="text-xl font-semibold mb-3">Không tìm thấy tài liệu</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 {selectedCategories.length === 0
-                  ? "Vui lòng chọn danh mục trong cây kiến thức bên trên để xem tài liệu"
+                  ? "Chưa có tài liệu nào trong thư viện. Hãy đóng góp tài liệu ngay!"
                   : "Không có tài liệu nào trong danh mục đã chọn"
                 }
               </p>
               {profile && (
                 <Link href="/materials/upload">
-                  <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+                  <Button>
                     <Upload className="mr-2 h-4 w-4" />
                     Đăng tài liệu đầu tiên
                   </Button>
