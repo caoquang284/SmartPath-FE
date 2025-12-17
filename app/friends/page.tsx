@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { friendshipAPI } from '@/lib/api/friendshipAPI';
 import { userAPI } from '@/lib/api/userAPI';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import type { UserProfile, FriendshipResponseDto } from '@/lib/types';
 
 type FriendSummaryDto = {
@@ -35,6 +36,7 @@ type PendingRequestItem = {
 };
 
 function FriendsPageContent() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const { profile } = useAuth();
   const searchParams = useSearchParams();
@@ -51,9 +53,9 @@ function FriendsPageContent() {
         <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">Friends</h1>
+              <h1 className="text-3xl font-bold">{t.friends.title}</h1>
               <p className="text-muted-foreground">
-                Đăng nhập để sử dụng tính năng này
+                {t.friends.loginRequired}
               </p>
             </div>
           </div>
@@ -339,34 +341,34 @@ function FriendsPageContent() {
         <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">Friends</h1>
-              <p className="text-muted-foreground">Connect with other students</p>
+              <h1 className="text-3xl font-bold">{t.friends.title}</h1>
+              <p className="text-muted-foreground">{t.friends.connectWithOthers}</p>
             </div>
 
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
               <TabsList>
                 <TabsTrigger value="all">
                   <Users className="mr-2 h-4 w-4" />
-                  All Friends ({loadingFriends ? '…' : friends.length})
+                  {t.friends.tabs.all} ({loadingFriends ? '…' : friends.length})
                 </TabsTrigger>
                 <TabsTrigger value="requests">
-                  Requests ({loadingReq ? '…' : requests.length})
+                  {t.friends.tabs.requests} ({loadingReq ? '…' : requests.length})
                 </TabsTrigger>
                 <TabsTrigger value="requested">
-                  Requested ({loadingRequested ? '…' : requested.length})
+                  {t.friends.sentRequest} ({loadingRequested ? '…' : requested.length})
                 </TabsTrigger>
-                <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+                <TabsTrigger value="suggestions">{t.friends.tabs.suggestions}</TabsTrigger>
               </TabsList>
 
               {/* All Friends */}
               <TabsContent value="all" className="space-y-4 mt-6">
                 {loadingFriends ? (
                   <Card>
-                    <CardContent className="p-12 text-center">Loading friends…</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.loadingFriends}</CardContent>
                   </Card>
                 ) : friends.length === 0 ? (
                   <Card>
-                    <CardContent className="p-12 text-center">No friends yet</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.noFriends}</CardContent>
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -403,7 +405,7 @@ function FriendsPageContent() {
                             </div>
                             <div className="flex gap-2 w-full">
                               <Button asChild variant="outline" size="sm" className="flex-1">
-                                <Link href={`/profile/${friend.id}`}>View Profile</Link>
+                                <Link href={`/profile/${friend.id}`}>{t.friends.viewProfile}</Link>
                               </Button>
                               <Button
                                 size="sm"
@@ -413,7 +415,7 @@ function FriendsPageContent() {
                                 disabled={!!workingIds[friend.id]}
                               >
                                 <X className="mr-2 h-4 w-4" />
-                                Unfollow
+                                {t.friends.unfollow}
                               </Button>
                             </div>
                           </div>
@@ -428,11 +430,11 @@ function FriendsPageContent() {
               <TabsContent value="requests" className="space-y-4 mt-6">
                 {loadingReq ? (
                   <Card>
-                    <CardContent className="p-12 text-center">Loading requests…</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.loadingRequests}</CardContent>
                   </Card>
                 ) : requests.length === 0 ? (
                   <Card>
-                    <CardContent className="p-12 text-center">No pending requests</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.noRequests}</CardContent>
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -467,7 +469,7 @@ function FriendsPageContent() {
                                   disabled={!!workingIds[key]}
                                 >
                                   <Check className="mr-2 h-4 w-4" />
-                                  Accept
+                                  {t.friends.accept}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -477,7 +479,7 @@ function FriendsPageContent() {
                                   disabled={!!workingIds[key]}
                                 >
                                   <X className="mr-2 h-4 w-4" />
-                                  Reject
+                                  {t.friends.reject}
                                 </Button>
                               </div>
                             </div>
@@ -492,11 +494,11 @@ function FriendsPageContent() {
               <TabsContent value="requested" className="space-y-6 mt-6">
                 {loadingRequested ? (
                   <Card>
-                    <CardContent className="p-12 text-center">Loading requested…</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.loadingRequests}</CardContent>
                   </Card>
                 ) : requested.length === 0 ? (
                   <Card>
-                    <CardContent className="p-12 text-center">No outgoing requests</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.noOutgoingRequests}</CardContent>
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -522,7 +524,7 @@ function FriendsPageContent() {
                               </div>
                               <div className="flex gap-2 w-full">
                                 <Button asChild variant="outline" size="sm" className="flex-1">
-                                  <Link href={`/profile/${u.id}`}>View Profile</Link>
+                                  <Link href={`/profile/${u.id}`}>{t.friends.viewProfile}</Link>
                                 </Button>
                                 <Button
                                   size="sm"
@@ -532,7 +534,7 @@ function FriendsPageContent() {
                                   disabled={disabled}
                                 >
                                   <X className="mr-2 h-4 w-4" />
-                                  Cancel request
+                                  {t.friends.cancelRequest}
                                 </Button>
                               </div>
                             </div>
@@ -548,11 +550,11 @@ function FriendsPageContent() {
               <TabsContent value="suggestions" className="space-y-6 mt-6">
                 {loadingSuggest ? (
                   <Card>
-                    <CardContent className="p-12 text-center">Loading suggestions…</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.loadingSuggestions}</CardContent>
                   </Card>
                 ) : suggestions.length === 0 ? (
                   <Card>
-                    <CardContent className="p-12 text-center">No suggestions</CardContent>
+                    <CardContent className="p-12 text-center">{t.friends.noSuggestions}</CardContent>
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -581,7 +583,7 @@ function FriendsPageContent() {
                               </div>
                               <div className="flex gap-2 w-full">
                                 <Button asChild variant="outline" size="sm" className="flex-1">
-                                  <Link href={`/profile/${u.id}`}>View Profile</Link>
+                                  <Link href={`/profile/${u.id}`}>{t.friends.viewProfile}</Link>
                                 </Button>
 
                                 {isFriend ? (
@@ -593,7 +595,7 @@ function FriendsPageContent() {
                                     disabled={disabled}
                                   >
                                     <X className="mr-2 h-4 w-4" />
-                                    Unfollow
+                                    {t.friends.unfollow}
                                   </Button>
                                 ) : (
                                   <Button
@@ -603,7 +605,7 @@ function FriendsPageContent() {
                                     disabled={disabled}
                                   >
                                     <UserPlus className="mr-2 h-4 w-4" />
-                                    Follow
+                                    {t.friends.follow}
                                   </Button>
                                 )}
                               </div>

@@ -13,7 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { userAPI } from '@/lib/api/userAPI';
 import type { AdminActivityDaily, AdminDailyCount, UserAdminSummary, UserProfile } from '@/lib/types';
 import { TrendingUp, UserX, ShieldCheck } from 'lucide-react';
-import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Line, BarChart, Bar, CartesianGrid, Legend } from 'recharts';
+import { UserGrowthChart, ActivityChart } from '@/components/admin/UserCharts';
 
 export default function UserModerationPage() {
     const { profile } = useAuth();
@@ -55,17 +55,17 @@ export default function UserModerationPage() {
             try {
                 const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
                 const to = now.toISOString();
-                // const [growthRes, activityRes] = await Promise.all([
-                //     userAPI.getUserGrowth(from, to),
-                //     userAPI.getActivity(from, to),
-                // ]);
-                // setUserGrowth(growthRes);
-                // setActivity(activityRes);
+                const [growthRes, activityRes] = await Promise.all([
+                    userAPI.usersCreatedRange(from, to),
+                    userAPI.activityRange(from, to),
+                ]);
+                setUserGrowth(growthRes);
+                setActivity(activityRes);
             } catch (e: any) {
                 console.error('Load analytics error:', e);
             }
         })();
-    }, [isAdmin, now]);
+    }, [isAdmin]);
 
     // ===== Load users =====
     useEffect(() => {
@@ -104,7 +104,7 @@ export default function UserModerationPage() {
         setSelected(u);
         setSummary(null);
         try {
-            const sum = await userAPI.getUserAdminSummary(u.id);
+            const sum = await userAPI.summary(u.id);
             setSummary(sum);
         } catch (e: any) {
             toast({ title: 'Lỗi', description: e?.message, variant: 'destructive' });
@@ -114,10 +114,11 @@ export default function UserModerationPage() {
     const ban = async () => {
         if (!selected) return;
         try {
-            await userAPI.ban(selected.id, {
-                reason: banReason,
-                until: banUntil ? new Date(banUntil).toISOString() : undefined,
-            });
+            await userAPI.ban(
+                selected.id, 
+                banUntil ? new Date(banUntil).toISOString() : null,
+                banReason
+            );
             toast({ title: 'Thành công', description: 'Đã ban user' });
             // Refresh the user list
             const result = await userAPI.getUsers({
@@ -189,53 +190,8 @@ export default function UserModerationPage() {
                 <CardContent className="space-y-6">
                     {/* User growth chart */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>User Growth</CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-64">
-                                {userGrowth.length ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={userGrowth}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString()} />
-                                            <YAxis />
-                                            <Tooltip labelFormatter={(d) => new Date(d as string).toLocaleString()} />
-                                            <Legend />
-                                            <Line type="monotone" dataKey="count" name="New Users" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-muted-foreground">No data</div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Activity chart */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Activity</CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-64">
-                                {activity.length ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={activity}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString()} />
-                                            <YAxis />
-                                            <Tooltip labelFormatter={(d) => new Date(d as string).toLocaleString()} />
-                                            <Legend />
-                                            <Bar dataKey="posts" name="Posts" />
-                                            <Bar dataKey="comments" name="Comments" />
-                                            <Bar dataKey="reactions" name="Reactions" />
-                                            <Bar dataKey="reports" name="Reports" />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-muted-foreground">No data</div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <UserGrowthChart data={userGrowth} />
+                        <ActivityChart data={activity} />
                     </div>
                 </CardContent>
             </Card>

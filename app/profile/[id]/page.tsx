@@ -136,7 +136,7 @@ export default function ProfilePage() {
   const loadPostsOfUser = useCallback(async (userId: string) => {
     try {
       const raw = await postAPI.getByUser(userId);
-      const mapped = raw.map(mapPostToUI);
+      const mapped = raw.items.map(mapPostToUI);
 
       // Tính thống kê cơ bản
       const postsCount = mapped.length;

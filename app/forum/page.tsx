@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
 
 import { postAPI } from '@/lib/api/postAPI';
 import { reactionAPI } from '@/lib/api/reactionAPI';
@@ -71,6 +73,7 @@ const FETCH_STRATEGIES: Record<
 };
 
 export default function ForumPage() {
+  const { t } = useLanguage();
   const { profile } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -241,9 +244,9 @@ export default function ForumPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Diễn Đàn</h1>
+          <h1 className="text-3xl font-bold">{t.forum.title}</h1>
           <p className="text-muted-foreground">
-            Trao đổi, thảo luận, chia sẻ kiến thức {isGuest && '(Guest)'}
+            {t.forum.subtitle} {isGuest && `(${t.forum.guest})`}
           </p>
         </div>
 
@@ -252,14 +255,14 @@ export default function ForumPage() {
             <Link href="/auth/login">
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Sign in to Post
+                {t.forum.signInToPost}
               </Button>
             </Link>
           ) : (
             <Link href="/forum/create">
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                  Đăng bài
+                  {t.forum.createPost}
               </Button>
             </Link>
           )}
@@ -270,29 +273,35 @@ export default function ForumPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading recommended posts...</p>
+            <p className="mt-4 text-muted-foreground">{t.forum.loadingPosts}</p>
           </div>
         ) : uiPosts.length === 0 ? (
           <Card className="p-12 text-center">
-            <p className="text-muted-foreground">No recommended posts found</p>
+            <p className="text-muted-foreground">{t.forum.noPostsFound}</p>
             {!isGuest && (
               <Link href="/forum/create">
-                <Button className="mt-4">Create First Post</Button>
+                <Button className="mt-4">{t.forum.createFirstPost}</Button>
               </Link>
             )}
           </Card>
         ) : (
-          uiPosts.map((post) => (
-            <PostCard
+          filteredPosts.map((post, index) => (
+            <motion.div
               key={post.id}
-              post={post}
-              canReact={!isGuest}
-              signInHint={isGuest ? 'Sign in to react' : undefined}
-              onLike={() => handleReact(post.id, 'like')}
-              onDislike={() => handleReact(post.id, 'dislike')}
-              isLiked={post.isPositiveReacted === true}
-              isDisliked={post.isNegativeReacted === true}
-            />
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+            >
+              <PostCard
+                post={post}
+                canReact={!isGuest}
+                signInHint={isGuest ? t.forum.signInToReact : undefined}
+                onLike={() => handleReact(post.id, 'like')}
+                onDislike={() => handleReact(post.id, 'dislike')}
+                isLiked={post.isPositiveReacted === true}
+                isDisliked={post.isNegativeReacted === true}
+              />
+            </motion.div>
           ))
         )}
       </div>
@@ -311,7 +320,7 @@ export default function ForumPage() {
       {/* Results info */}
       {!loading && strategy !== 'recommended' && (
         <div className="text-center text-sm text-muted-foreground">
-          Showing {uiPosts.length} of {totalItems} posts
+          {t.forum.showing} {filteredPosts.length} {t.forum.of} {totalItems} {t.forum.posts}
         </div>
       )}
     </div>

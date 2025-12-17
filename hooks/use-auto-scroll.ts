@@ -5,7 +5,7 @@ export function useAutoScroll(dependencies: any[] = []) {
   const shouldAutoScroll = useRef(true);
 
   const scrollToBottom = () => {
-    if (scrollRef.current && shouldAutoScroll.current) {
+    if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   };
@@ -19,7 +19,7 @@ export function useAutoScroll(dependencies: any[] = []) {
   };
 
   useEffect(() => {
-    // Auto-scroll when dependencies change
+    // Auto-scroll when dependencies change (new messages or chat selection)
     scrollToBottom();
   }, dependencies);
 

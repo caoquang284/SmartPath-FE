@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +14,7 @@ import { Heart, ThumbsDown, Send, ImagePlus, FilePlus2, FileText, X, Trophy, Med
 import type { UIComment } from '@/lib/mappers/commentMapper';
 
 import { useBadgesCatalog, pickPrimaryBadgeByPoints } from '@/hooks/use-badge-catalog';
+import { useLanguage } from '@/context/LanguageContext';
 
 type QueuedImage = { id: string; file: File; preview: string };
 type QueuedDoc = { id: string; file: File };
@@ -37,6 +39,7 @@ interface CommentCardProps {
   onUpdate?: (id: string) => void;
   onDelete?: (id: string) => void;
   editingComment?: string | null;
+  setEditingComment?: (id: string | null) => void;
   editCommentContent?: string;
   setEditCommentContent?: (content: string) => void;
   updatingComment?: boolean;
@@ -154,10 +157,12 @@ export function CommentCard({
   onUpdate,
   onDelete,
   editingComment,
+  setEditingComment,
   editCommentContent = '',
   setEditCommentContent,
   updatingComment = false,
 }: CommentCardProps) {
+  const { locale } = useLanguage();
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
 
@@ -254,7 +259,7 @@ export function CommentCard({
                 <BadgePillFancy badge={primary as any} />
 
                 <span className="text-[11px] text-muted-foreground">
-                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}
                 </span>
               </div>
 
@@ -272,7 +277,7 @@ export function CommentCard({
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditingComment(null);
+                        setEditingComment?.(null);
                         setEditCommentContent?.('');
                       }}
                       disabled={updatingComment}
@@ -533,6 +538,7 @@ export function CommentCard({
                   onUpdate={onUpdate}
                   onDelete={onDelete}
                   editingComment={editingComment}
+                  setEditingComment={setEditingComment}
                   editCommentContent={editCommentContent}
                   setEditCommentContent={setEditCommentContent}
                   updatingComment={updatingComment}
