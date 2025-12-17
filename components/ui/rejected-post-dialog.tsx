@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDistanceToNow } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   XCircle,
   AlertCircle,
@@ -34,6 +36,7 @@ interface RejectedPostDialogProps {
 }
 
 export function RejectedPostDialog({ open, onClose, post }: RejectedPostDialogProps) {
+  const { locale } = useLanguage();
   // Defensive check - if post is null or undefined, don't render
   if (!post) return null;
 
@@ -112,7 +115,7 @@ export function RejectedPostDialog({ open, onClose, post }: RejectedPostDialogPr
             {post.reviewedAt && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-gray-50 rounded-lg">
                 <Clock className="h-4 w-4" />
-                <span>Reviewed {formatDistanceToNow(new Date(post.reviewedAt), { addSuffix: true })}</span>
+                <span>Reviewed {formatDistanceToNow(new Date(post.reviewedAt), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}</span>
               </div>
             )}
           </div>

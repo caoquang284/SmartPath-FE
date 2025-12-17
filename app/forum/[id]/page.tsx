@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'rea
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 
 import { postAPI } from '@/lib/api/postAPI';
@@ -93,6 +95,7 @@ function PostDetailContent() {
   const { id: postId } = useParams<{ id: string }>();
   const router = useRouter();
   const { profile } = useAuth();
+  const { locale } = useLanguage();
   const { toast } = useToast();
   const isGuest = !profile?.id;
 
@@ -1013,11 +1016,11 @@ function PostDetailContent() {
                   aiReason={uiPost.aiReason}
                 />
                 <span>
-                  {formatDistanceToNow(new Date(uiPost.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(uiPost.created_at), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}
                 </span>
                 {uiPost.reviewedAt && (
                   <span>
-                    • Reviewed {formatDistanceToNow(new Date(uiPost.reviewedAt), { addSuffix: true })}
+                    • Reviewed {formatDistanceToNow(new Date(uiPost.reviewedAt), { addSuffix: true, locale: locale === 'vi' ? vi : enUS })}
                   </span>
                 )}
               </div>

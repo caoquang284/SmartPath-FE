@@ -45,14 +45,30 @@ export const postAPI = {
     page?: number;
     pageSize?: number;
   }): Promise<PageResult<PostResponseDto>> => {
-    // This would need to be implemented in backend or use search API
-    // For now, using the existing endpoint
-    return fetchWrapper.get<PostResponseDto[]>(`/post/by-user/${userId}`).then(posts => ({
-      total: posts.length,
-      page: params?.page || 1,
-      pageSize: params?.pageSize || 10,
-      items: posts
-    }));
+    // Handle both array (legacy) and PageResult (new) responses
+    const response = await fetchWrapper.get<any>(`/post/by-user/${userId}`);
+    
+    if (Array.isArray(response)) {
+      return {
+        total: response.length,
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 10,
+        items: response
+      };
+    }
+    
+    // If it's already a PageResult structure
+    if (response && Array.isArray(response.items)) {
+      return response;
+    }
+
+    // Fallback for unexpected structure
+    return {
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      items: []
+    };
   },
 
   // Create new post

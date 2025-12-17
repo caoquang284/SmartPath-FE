@@ -739,7 +739,7 @@ export interface ResultTypeStat {
 }
 
 // Enhanced Post Types for Search Compatibility
-export interface EnhancedPostResponse extends PostResponseDto {
+export interface EnhancedPostResponse extends Omit<PostResponseDto, 'categories'> {
   summary?: string | null;
   isSolved?: boolean;
   viewCount?: number;
@@ -758,7 +758,7 @@ export interface EnhancedPostResponse extends PostResponseDto {
 }
 
 // Enhanced Study Material Types for Search Compatibility
-export interface EnhancedStudyMaterialResponse extends StudyMaterialResponse {
+export interface EnhancedStudyMaterialResponse extends Omit<StudyMaterialResponse, 'aiConfidence' | 'totalRatings'> {
   summary?: string | null;
   type: string;
   url: string;

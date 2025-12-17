@@ -42,8 +42,10 @@ import { materialCategoryAPI } from '@/lib/api/studyMaterialAPI';
 import { postAPI } from '@/lib/api/postAPI';
 import { categoryAPI } from '@/lib/api/categoryAPI';
 import { SearchRequest, SearchResponse, MaterialCategory, PostSuggestion, MaterialSuggestion } from '@/lib/types';
+import { useLanguage } from '@/context/LanguageContext';
 
 function SearchPageContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 
@@ -180,12 +182,12 @@ function SearchPageContent() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="space-y-6">
       {/* Search Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Search</h1>
+      <div>
+        <h1 className="text-3xl font-bold mb-4">{t.search.title}</h1>
         <p className="text-muted-foreground mb-6">
-          Search through posts, study materials, and more
+          {t.search.placeholder}
         </p>
 
           {/* Search Input */}
@@ -194,7 +196,7 @@ function SearchPageContent() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search for anything..."
+                  placeholder={t.search.placeholder}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -224,14 +226,14 @@ function SearchPageContent() {
               </div>
               <Button onClick={() => handleSearch()} disabled={loading}>
                 <Search className="h-4 w-4 mr-2" />
-                Search
+                {t.search.title}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="h-4 w-4 mr-2" />
-                Filters
+                {t.search.filters}
               </Button>
             </div>
 
@@ -241,7 +243,7 @@ function SearchPageContent() {
                 <div className="p-2">
                   {suggestions.posts.length > 0 && (
                     <div className="mb-2">
-                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">Posts</p>
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">{t.search.posts}</p>
                       {suggestions.posts.map(post => (
                         <button
                           key={post.id}
@@ -261,7 +263,7 @@ function SearchPageContent() {
                   )}
                   {suggestions.materials.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">Materials</p>
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">{t.search.materials}</p>
                       {suggestions.materials.map(material => (
                         <button
                           key={material.id}
@@ -272,7 +274,7 @@ function SearchPageContent() {
                             <BookOpen className="h-3 w-3" />
                             <span>{material.title}</span>
                             <Badge variant="outline" className="text-xs">
-                              {getResultTypeLabel(material.type)}
+                              {(t.search.fileTypes as any)[material.type] || material.type}
                             </Badge>
                           </div>
                         </button>
@@ -290,13 +292,13 @@ function SearchPageContent() {
           <CollapsibleContent className="mb-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Search Filters</CardTitle>
+                <CardTitle className="text-lg">{t.search.filters}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Search Type */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Search Type</label>
+                    <label className="text-sm font-medium mb-2 block">{t.search.type}</label>
                     <Select
                       value={searchRequest.searchType}
                       onValueChange={(value: 'All' | 'Posts' | 'StudyMaterials') =>
@@ -307,16 +309,16 @@ function SearchPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="All">All Content</SelectItem>
-                        <SelectItem value="Posts">Posts Only</SelectItem>
-                        <SelectItem value="StudyMaterials">Study Materials Only</SelectItem>
+                        <SelectItem value="All">{t.search.all}</SelectItem>
+                        <SelectItem value="Posts">{t.search.posts}</SelectItem>
+                        <SelectItem value="StudyMaterials">{t.search.materials}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Sort By */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Sort By</label>
+                    <label className="text-sm font-medium mb-2 block">{t.common.sort}</label>
                     <Select
                       value={searchRequest.sortBy}
                       onValueChange={(value: any) =>
@@ -327,17 +329,17 @@ function SearchPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="relevance">Relevance</SelectItem>
-                        <SelectItem value="created">Created Date</SelectItem>
-                        <SelectItem value="updated">Updated Date</SelectItem>
-                        <SelectItem value="views">Views</SelectItem>
+                        <SelectItem value="relevance">{t.search.relevance}</SelectItem>
+                        <SelectItem value="created">{t.search.createdDate}</SelectItem>
+                        <SelectItem value="updated">{t.search.updatedDate}</SelectItem>
+                        <SelectItem value="views">{t.search.mostViewed}</SelectItem>
                         {/* Likes only applies to posts */}
                         {(searchRequest.searchType === 'All' || searchRequest.searchType === 'Posts') && (
-                          <SelectItem value="likes">Likes</SelectItem>
+                          <SelectItem value="likes">{t.search.mostLiked}</SelectItem>
                         )}
                         {/* Rating only applies to study materials */}
                         {(searchRequest.searchType === 'All' || searchRequest.searchType === 'StudyMaterials') && (
-                          <SelectItem value="rating">Rating</SelectItem>
+                          <SelectItem value="rating">{t.search.highestRated}</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -345,7 +347,7 @@ function SearchPageContent() {
 
                   {/* Sort Order */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Order</label>
+                    <label className="text-sm font-medium mb-2 block">{t.search.order}</label>
                     <Select
                       value={searchRequest.sortOrder}
                       onValueChange={(value: 'asc' | 'desc') =>
@@ -356,15 +358,15 @@ function SearchPageContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="desc">Descending</SelectItem>
-                        <SelectItem value="asc">Ascending</SelectItem>
+                        <SelectItem value="desc">{t.search.descending}</SelectItem>
+                        <SelectItem value="asc">{t.search.ascending}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Search Options */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Search Options</label>
+                    <label className="text-sm font-medium mb-2 block">{t.search.searchOptions}</label>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -374,7 +376,7 @@ function SearchPageContent() {
                             updateSearchRequest({ includeSemanticSearch: checked as boolean })
                           }
                         />
-                        <label htmlFor="semantic" className="text-sm">Semantic Search</label>
+                        <label htmlFor="semantic" className="text-sm">{t.search.semanticSearch}</label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -384,7 +386,7 @@ function SearchPageContent() {
                             updateSearchRequest({ includeKeywordSearch: checked as boolean })
                           }
                         />
-                        <label htmlFor="keyword" className="text-sm">Keyword Search</label>
+                        <label htmlFor="keyword" className="text-sm">{t.search.keywordSearch}</label>
                       </div>
                     </div>
                   </div>
@@ -439,7 +441,7 @@ function SearchPageContent() {
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-2 text-muted-foreground">Searching...</p>
+            <p className="mt-2 text-muted-foreground">{t.search.searching}</p>
           </div>
         )}
 
@@ -450,15 +452,17 @@ function SearchPageContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">
-                    Found {searchResults.totalResults.toLocaleString()} results
+                    {t.search.foundResults.replace('{count}', searchResults.totalResults.toLocaleString())}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {searchResults.totalPosts} posts, {searchResults.totalStudyMaterials} study materials
+                    {t.search.foundDetail
+                      .replace('{posts}', searchResults.totalPosts.toString())
+                      .replace('{materials}', searchResults.totalStudyMaterials.toString())}
                   </p>
                 </div>
                 {searchResults.queryTime && (
                   <div className="text-sm text-muted-foreground">
-                    Search time: {formatQueryTime(searchResults.queryTime)}
+                    {t.search.searchTime.replace('{time}', formatQueryTime(searchResults.queryTime))}
                   </div>
                 )}
               </div>
@@ -474,13 +478,13 @@ function SearchPageContent() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <AlertCircle className="h-5 w-5" />
-                    Suggestions
+                    {t.search.suggestions}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {searchResults.suggestions.correctedQuery && (
                     <div className="mb-3">
-                      <span className="text-sm text-muted-foreground">Did you mean: </span>
+                      <span className="text-sm text-muted-foreground">{t.search.didYouMean} </span>
                       <Button
                         variant="link"
                         className="p-0 h-auto text-sm"
@@ -496,7 +500,7 @@ function SearchPageContent() {
 
                   {searchResults.suggestions.didYouMean.length > 0 && (
                     <div className="mb-3">
-                      <span className="text-sm text-muted-foreground">Did you mean: </span>
+                      <span className="text-sm text-muted-foreground">{t.search.didYouMean} </span>
                       {searchResults.suggestions.didYouMean.map((suggestion, index) => (
                         <Button
                           key={index}
@@ -515,7 +519,7 @@ function SearchPageContent() {
 
                   {searchResults.suggestions.relatedQueries.length > 0 && (
                     <div>
-                      <span className="text-sm text-muted-foreground">Related searches: </span>
+                      <span className="text-sm text-muted-foreground">{t.search.relatedSearches} </span>
                       {searchResults.suggestions.relatedQueries.map((suggestion, index) => (
                         <Button
                           key={index}
@@ -539,35 +543,35 @@ function SearchPageContent() {
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all">
-                  All ({searchResults.totalResults})
+                  {t.search.all} ({searchResults.totalResults})
                 </TabsTrigger>
                 <TabsTrigger value="posts">
-                  Posts ({searchResults.totalPosts})
+                  {t.search.posts} ({searchResults.totalPosts})
                 </TabsTrigger>
                 <TabsTrigger value="materials">
-                  Materials ({searchResults.totalStudyMaterials})
+                  {t.search.materials} ({searchResults.totalStudyMaterials})
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="all" className="space-y-4">
-                {searchResults.posts.map(post => (
-                  <Card key={post.id}>
+                {searchResults.posts.map((post, index) => (
+                  <Card key={`${post.id}-${index}`}>
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge className={getMatchTypeStyle(post.matchType)}>
-                              {post.matchType}
+                              {(t.search.matchTypes as any)[post.matchType] || post.matchType}
                             </Badge>
                             <Badge className={getRelevanceScoreColor(post.relevanceScore)}>
                               {formatRelevanceScore(post.relevanceScore)}
                             </Badge>
                             {post.isQuestion && (
-                              <Badge variant="outline">Question</Badge>
+                              <Badge variant="outline">{t.search.question}</Badge>
                             )}
                             {post.isSolved && (
                               <Badge variant="default" className="bg-green-100 text-green-800">
-                                Solved
+                                {t.search.solved}
                               </Badge>
                             )}
                           </div>
@@ -576,10 +580,10 @@ function SearchPageContent() {
                             {post.content}
                           </p>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>By {post.author.displayName}</span>
-                            <span>{post.likeCount} likes</span>
-                            <span>{post.commentCount} comments</span>
-                            <span>{post.viewCount} views</span>
+                            <span>{t.search.by} {post.author.displayName}</span>
+                            <span>{post.likeCount} {t.search.likes}</span>
+                            <span>{post.commentCount} {t.search.comments}</span>
+                            <span>{post.viewCount} {t.search.views}</span>
                           </div>
                         </div>
                       </div>
@@ -587,24 +591,24 @@ function SearchPageContent() {
                   </Card>
                 ))}
 
-                {searchResults.studyMaterials.map(material => (
-                  <Card key={material.id}>
+                {searchResults.studyMaterials.map((material, index) => (
+                  <Card key={`${material.id}-${index}`}>
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge className={getMatchTypeStyle(material.matchType)}>
-                              {material.matchType}
+                              {(t.search.matchTypes as any)[material.matchType] || material.matchType}
                             </Badge>
                             <Badge className={getRelevanceScoreColor(material.relevanceScore)}>
                               {formatRelevanceScore(material.relevanceScore)}
                             </Badge>
                             <Badge variant="outline">
-                              {getResultTypeLabel(material.type)}
+                              {(t.search.fileTypes as any)[material.type] || material.type}
                             </Badge>
                             {material.isApproved && (
                               <Badge variant="default" className="bg-green-100 text-green-800">
-                                Approved
+                                {t.search.approved}
                               </Badge>
                             )}
                           </div>
@@ -613,7 +617,7 @@ function SearchPageContent() {
                             {material.description}
                           </p>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>By {material.uploader.displayName}</span>
+                            <span>{t.search.by} {material.uploader.displayName}</span>
                             {material.totalRatings > 0 && (
                               <span className="flex items-center gap-1">
                                 <Star className="h-3 w-3 fill-current" />
@@ -639,34 +643,104 @@ function SearchPageContent() {
 
               <TabsContent value="posts" className="space-y-4">
                 {searchResults.posts.length > 0 ? (
-                  searchResults.posts.map(post => (
-                    <Card key={post.id}>
+                  searchResults.posts.map((post, index) => (
+                    <Card key={`${post.id}-${index}`}>
                       <CardContent className="pt-6">
-                        {/* Post content - same as above */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={getMatchTypeStyle(post.matchType)}>
+                              {(t.search.matchTypes as any)[post.matchType] || post.matchType}
+                            </Badge>
+                            <Badge className={getRelevanceScoreColor(post.relevanceScore)}>
+                              {formatRelevanceScore(post.relevanceScore)}
+                            </Badge>
+                            {post.isQuestion && (
+                              <Badge variant="outline">{t.search.question}</Badge>
+                            )}
+                            {post.isSolved && (
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                {t.search.solved}
+                              </Badge>
+                            )}
+                          </div>
+                          <h3 className="text-lg font-semibold mb-2">{post.title}</h3>
+                          <p className="text-muted-foreground mb-3 line-clamp-2">
+                            {post.content}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{t.search.by} {post.author.displayName}</span>
+                            <span>{post.likeCount} {t.search.likes}</span>
+                            <span>{post.commentCount} {t.search.comments}</span>
+                            <span>{post.viewCount} {t.search.views}</span>
+                          </div>
+                        </div>
+                      </div>
                       </CardContent>
                     </Card>
                   ))
                 ) : (
                   <div className="text-center py-8">
                     <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No posts found</p>
+                    <p className="text-muted-foreground">{t.search.noPostsFound}</p>
                   </div>
                 )}
               </TabsContent>
 
               <TabsContent value="materials" className="space-y-4">
                 {searchResults.studyMaterials.length > 0 ? (
-                  searchResults.studyMaterials.map(material => (
-                    <Card key={material.id}>
+                  searchResults.studyMaterials.map((material, index) => (
+                    <Card key={`${material.id}-${index}`}>
                       <CardContent className="pt-6">
-                        {/* Material content - same as above */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={getMatchTypeStyle(material.matchType)}>
+                              {(t.search.matchTypes as any)[material.matchType] || material.matchType}
+                            </Badge>
+                            <Badge className={getRelevanceScoreColor(material.relevanceScore)}>
+                              {formatRelevanceScore(material.relevanceScore)}
+                            </Badge>
+                            <Badge variant="outline">
+                              {(t.search.fileTypes as any)[material.type] || material.type}
+                            </Badge>
+                            {material.isApproved && (
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                {t.search.approved}
+                              </Badge>
+                            )}
+                          </div>
+                          <h3 className="text-lg font-semibold mb-2">{material.title}</h3>
+                          <p className="text-muted-foreground mb-3 line-clamp-2">
+                            {material.description}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{t.search.by} {material.uploader.displayName}</span>
+                            {material.totalRatings > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-current" />
+                                {material.averageRating.toFixed(1)} ({material.totalRatings})
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Download className="h-3 w-3" />
+                              {material.downloadCount}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {material.viewCount}
+                            </span>
+                            <span>{material.category.name}</span>
+                          </div>
+                        </div>
+                      </div>
                       </CardContent>
                     </Card>
                   ))
                 ) : (
                   <div className="text-center py-8">
                     <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No study materials found</p>
+                    <p className="text-muted-foreground">{t.search.noMaterialsFound}</p>
                   </div>
                 )}
               </TabsContent>
@@ -678,7 +752,7 @@ function SearchPageContent() {
           <div className="text-center py-8">
             <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
-              Enter a search query to find posts and study materials
+              {t.search.enterQuery}
             </p>
           </div>
         )}
@@ -687,12 +761,13 @@ function SearchPageContent() {
 }
 
 export default function SearchPage() {
+  const { t } = useLanguage();
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading search...</p>
+          <p className="text-muted-foreground">{t.search.loadingSearch}</p>
         </div>
       </div>
     }>

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Home,
   MessageSquare,
@@ -24,36 +25,40 @@ import {
   Folder
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useMessageNotifications } from '@/hooks/use-message-notifications';
+import { useLanguage } from '@/context/LanguageContext';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { profile } = useAuth();
+  const { unreadCount } = useMessageNotifications(profile?.id);
+  const { t } = useLanguage();
   const isGuest = !profile?.id;
 
   const mainLinks = [
-    { href: '/forum', icon: Home, label: 'Trang chủ' },
-    { href: '/search', icon: Search, label: 'Tìm kiếm' },
-    { href: '/materials', icon: BookOpen, label: 'Tài liệu' },
-    { href: '/materials/my-materials', icon: Folder, label: 'Tài liệu của tôi' },
+    { href: '/forum', icon: Home, label: t.nav.home },
+    { href: '/search', icon: Search, label: t.nav.search },
+    { href: '/materials', icon: BookOpen, label: t.nav.materials },
+    { href: '/materials/my-materials', icon: Folder, label: t.nav.myMaterials },
   ];
 
   const socialLinks = [
-    { href: '/friends', icon: UserPlus, label: 'Bạn bè' },
-    { href: '/messages', icon: MessageSquare, label: 'Tin nhắn' },
-    { href: '/chatbot', icon: BotIcon, label: 'Chatbot' },
+    { href: '/friends', icon: UserPlus, label: t.nav.friends },
+    { href: '/messages', icon: MessageSquare, label: t.nav.messages },
+    { href: '/chatbot', icon: BotIcon, label: t.nav.chatbot },
   ];
 
   const bottomLinks = [
-    { href: '/dashboard', icon: Settings, label: 'Dashboard' },
-    { href: '/achievements', icon: Award, label: 'Thành tựu' },
+    { href: '/dashboard', icon: Settings, label: t.nav.dashboard },
+    { href: '/achievements', icon: Award, label: t.nav.achievements },
   ];
 
   const adminLinks = [
-    { href: '/admin/badge-moderation', icon: ShieldCheck, label: 'Quản trị thành tựu' },
-    { href: '/admin/materials', icon: FileText, label: 'Quản trị tài liệu' },
-    { href: '/admin/categories', icon: FolderTree, label: 'Quản trị danh mục' },
-    { href: '/admin/user-moderation', icon: UsersIcon, label: 'Quản trị người dùng' },
-    { href: '/admin/knowledge-moderation', icon: Database, label: 'Quản trị dataset chatbot' },
+    { href: '/admin/badge-moderation', icon: ShieldCheck, label: t.sidebar.adminBadge },
+    { href: '/admin/materials', icon: FileText, label: t.sidebar.adminMaterials },
+    { href: '/admin/categories', icon: FolderTree, label: t.sidebar.adminCategories },
+    { href: '/admin/user-moderation', icon: UsersIcon, label: t.sidebar.adminUsers },
+    { href: '/admin/knowledge-moderation', icon: Database, label: t.sidebar.adminKnowledge },
   ];
 
   // ---- Normalize profile fields (chỉ dùng khi không phải guest) ----
@@ -93,6 +98,7 @@ export function Sidebar() {
   const renderLinkBtn = (link: { href: string; icon: any; label: string }) => {
     const isActive = pathname === link.href || pathname?.startsWith(link.href + '/');
     const Icon = link.icon;
+    const showBadge = link.href === '/messages' && unreadCount > 0;
     return (
       <Link key={link.href} href={link.href}>
         <Button
@@ -102,8 +108,17 @@ export function Sidebar() {
             isActive && 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400'
           )}
         >
-          <Icon className="mr-2 h-4 w-4" />
-          {link.label}
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
+              <Icon className="mr-2 h-4 w-4" />
+              {link.label}
+            </div>
+            {showBadge && (
+              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
+          </div>
         </Button>
       </Link>
     );
@@ -133,7 +148,7 @@ export function Sidebar() {
         {/* Main (luôn hiển thị) */}
         <div>
           <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Chính
+            {t.sidebar.main}
           </h3>
           <nav className="space-y-1">
             {mainLinks.map(renderLinkBtn)}
@@ -143,7 +158,7 @@ export function Sidebar() {
         {/* Social */}
         <div>
           <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Xã hội
+            {t.sidebar.social}
           </h3>
           <nav className="space-y-1">
             {socialLinks.map(renderLinkBtn)}
@@ -154,7 +169,7 @@ export function Sidebar() {
         {isAdmin && (
           <div>
             <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Admin
+              {t.sidebar.admin}
             </h3>
             <nav className="space-y-1">{adminLinks.map(renderLinkBtn)}</nav>
           </div>
@@ -163,7 +178,7 @@ export function Sidebar() {
         {/* Account */}
         <div className="mt-auto">
           <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Cá nhân
+            {t.sidebar.personal}
           </h3>
           <nav className="space-y-1">
             {bottomLinks.map(renderLinkBtn)}
@@ -172,9 +187,9 @@ export function Sidebar() {
       </div>
 
       <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
-        <h3 className="font-semibold mb-2">Study Tip</h3>
+        <h3 className="font-semibold mb-2">{t.sidebar.studyTip}</h3>
         <p className="text-xs text-blue-50">
-          Join a study group to collaborate with peers and boost your learning!
+          {t.sidebar.studyTipDesc}
         </p>
       </Card>
     </aside>

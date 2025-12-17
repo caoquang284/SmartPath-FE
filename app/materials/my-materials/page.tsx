@@ -29,32 +29,35 @@ import {
   Filter,
   MessageSquare
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { vi, enUS } from 'date-fns/locale';
 
-const statusConfig = {
+const getStatusConfig = (t: any) => ({
   [MaterialStatus.Pending]: {
-    label: 'Đang chờ duyệt',
+    label: t.materials.statusPending,
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     icon: AlertCircle
   },
   [MaterialStatus.Accepted]: {
-    label: 'Đã duyệt',
+    label: t.materials.statusApproved,
     color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     icon: CheckCircle
   },
   [MaterialStatus.Rejected]: {
-    label: 'Bị từ chối',
+    label: t.materials.statusRejected,
     color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     icon: XCircle
   }
-};
+});
 
 interface MaterialCardProps {
   material: StudyMaterialResponse;
 }
 
 function MaterialCard({ material }: MaterialCardProps) {
+  const { t, locale } = useLanguage();
+  const statusConfig = getStatusConfig(t);
   const status = statusConfig[material.status] || statusConfig[MaterialStatus.Pending];
   const StatusIcon = status.icon;
 
@@ -88,7 +91,7 @@ function MaterialCard({ material }: MaterialCardProps) {
               <Calendar className="h-3 w-3" />
               {formatDistanceToNow(new Date(material.createdAt), {
                 addSuffix: true,
-                locale: vi,
+                locale: locale === 'vi' ? vi : enUS,
               })}
             </span>
             {material.totalRatings > 0 && (
@@ -101,13 +104,13 @@ function MaterialCard({ material }: MaterialCardProps) {
 
           {material.status === MaterialStatus.Rejected && material.rejectReason && (
             <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-              <strong>Lý do từ chối:</strong> {material.rejectReason}
+              <strong>{t.materials.rejectReason}:</strong> {material.rejectReason}
             </div>
           )}
 
           {material.status === MaterialStatus.Pending && (
             <div className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
-              <strong>Đang chờ duyệt:</strong> Tài liệu đang được quản trị viên xem xét. Người dùng có thể đánh giá tài liệu này.
+              <strong>{t.materials.statusPending}:</strong> {t.materials.pendingDesc}
             </div>
           )}
 
@@ -117,7 +120,7 @@ function MaterialCard({ material }: MaterialCardProps) {
                 <Link href={material.fileUrl || '#'} target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" size="sm">
                     <FileText className="h-4 w-4 mr-2" />
-                    Xem tài liệu
+                    {t.materials.viewMaterial}
                     <ExternalLink className="h-3 w-3 ml-2" />
                   </Button>
                 </Link>
@@ -125,7 +128,7 @@ function MaterialCard({ material }: MaterialCardProps) {
                 <Link href={material.sourceUrl || '#'} target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" size="sm">
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Mở liên kết
+                    {t.materials.openLink}
                   </Button>
                 </Link>
               )}
@@ -143,7 +146,7 @@ function MaterialCard({ material }: MaterialCardProps) {
             <Link href={`/materials/${material.id}`}>
               <Button variant="ghost" size="sm">
                 <Eye className="h-4 w-4 mr-2" />
-                Chi tiết
+                {t.common.view}
               </Button>
             </Link>
             {/* TODO: Add edit/delete functionality when API supports it */}
@@ -188,6 +191,7 @@ function MaterialSkeleton({ count = 5 }: MaterialSkeletonProps) {
 }
 
 export default function MyMaterialsPage() {
+  const { t } = useLanguage();
   const { profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -258,12 +262,12 @@ export default function MyMaterialsPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Yêu cầu đăng nhập</h2>
+            <h2 className="text-xl font-semibold mb-2">{t.common.signInRequired}</h2>
             <p className="text-muted-foreground mb-4">
-              Bạn cần đăng nhập để xem tài liệu của mình
+              {t.materials.loginToUpload}
             </p>
             <Link href="/auth/login?redirect=/materials/my-materials">
-              <Button>Đăng nhập</Button>
+              <Button>{t.common.signIn}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -276,16 +280,16 @@ export default function MyMaterialsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Tài liệu của tôi</h1>
+          <h1 className="text-3xl font-bold">{t.materials.myMaterials}</h1>
           <p className="text-muted-foreground">
-            Quản lý các tài liệu bạn đã đăng tải
+            {t.materials.manageMyMaterials}
           </p>
         </div>
 
         <Link href="/materials/upload">
           <Button>
             <Upload className="mr-2 h-4 w-4" />
-            Đăng tài liệu mới
+            {t.materials.uploadMaterial}
           </Button>
         </Link>
       </div>
@@ -297,13 +301,13 @@ export default function MyMaterialsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm kiếm tài liệu của bạn..."
+                placeholder={t.materials.searchMyMaterials}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <Button type="submit">Tìm kiếm</Button>
+            <Button type="submit">{t.common.search}</Button>
           </form>
         </CardContent>
       </Card>
@@ -315,7 +319,7 @@ export default function MyMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold">{totalCount}</p>
-                <p className="text-sm text-muted-foreground">Tổng số tài liệu</p>
+                <p className="text-sm text-muted-foreground">{t.materials.totalMaterials}</p>
               </div>
               <FileText className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -329,7 +333,7 @@ export default function MyMaterialsPage() {
                 <p className="text-2xl font-bold text-green-600">
                   {materials.filter(m => m.status === MaterialStatus.Accepted).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Đã được duyệt</p>
+                <p className="text-sm text-muted-foreground">{t.materials.statusApproved}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -343,7 +347,7 @@ export default function MyMaterialsPage() {
                 <p className="text-2xl font-bold text-yellow-600">
                   {materials.filter(m => m.status === MaterialStatus.Pending).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Đang chờ duyệt</p>
+                <p className="text-sm text-muted-foreground">{t.materials.statusPending}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-yellow-600" />
             </div>
@@ -354,18 +358,17 @@ export default function MyMaterialsPage() {
       {/* Tabs for Status Filter */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-4">
-          <TabsTrigger value="all">Tất cả</TabsTrigger>
-          <TabsTrigger value="accepted">Đã duyệt</TabsTrigger>
-          <TabsTrigger value="pending">Chờ duyệt</TabsTrigger>
-          <TabsTrigger value="rejected">Bị từ chối</TabsTrigger>
+          <TabsTrigger value="all">{t.friends.tabs.all}</TabsTrigger>
+          <TabsTrigger value="accepted">{t.materials.statusApproved}</TabsTrigger>
+          <TabsTrigger value="pending">{t.materials.statusPending}</TabsTrigger>
+          <TabsTrigger value="rejected">{t.materials.statusRejected}</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4 mt-6">
           {/* Results Info */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Hiển thị {filteredMaterials.length} tài liệu
-              {searchQuery && ' cho từ khóa tìm kiếm'}
+              {t.forum.showing.replace('{count}', filteredMaterials.length.toString()).replace('{total}', totalCount.toString())}
             </p>
           </div>
 
@@ -377,19 +380,19 @@ export default function MyMaterialsPage() {
               <CardContent className="p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
-                  {searchQuery ? 'Không tìm thấy tài liệu' : 'Chưa có tài liệu nào'}
+                  {searchQuery ? t.materials.notFound : t.materials.notFound}
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   {searchQuery
-                    ? 'Thử thay đổi từ khóa tìm kiếm'
-                    : 'Bắt đầu bằng cách đăng tài liệu đầu tiên của bạn'
+                    ? t.materials.notFoundDesc
+                    : t.materials.uploadFirst
                   }
                 </p>
                 {!searchQuery && (
                   <Link href="/materials/upload">
                     <Button>
                       <Upload className="mr-2 h-4 w-4" />
-                      Đăng tài liệu đầu tiên
+                      {t.materials.uploadFirst}
                     </Button>
                   </Link>
                 )}
