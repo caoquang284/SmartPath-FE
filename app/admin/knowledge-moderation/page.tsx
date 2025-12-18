@@ -69,10 +69,28 @@ export default function KnowledgeModerationPage() {
   const load = async () => {
     setLoading(true);
     try {
+      console.log('Loading knowledge documents...', { page, pageSize, q });
       const res = await knowledgeAPI.listDocuments(page, pageSize, q || undefined);
-      setItems(res?.items ?? []);
-      setTotal(res?.total ?? 0);
+      console.log('API Response:', res);
+
+      // Handle both paginated and non-paginated responses
+      if (Array.isArray(res)) {
+        // Non-paginated: backend returns array directly
+        console.log('Non-paginated response, items:', res);
+        setItems(res);
+        setTotal(res.length);
+      } else if (res?.items) {
+        // Paginated: backend returns { items, total, page, pageSize }
+        console.log('Paginated response, items:', res.items);
+        setItems(res.items ?? []);
+        setTotal(res.total ?? 0);
+      } else {
+        console.warn('Unexpected response format:', res);
+        setItems([]);
+        setTotal(0);
+      }
     } catch (e: any) {
+      console.error('Error loading documents:', e);
       toast({
         title: 'Lỗi tải danh sách',
         description: e?.message ?? 'Không thể tải tài liệu',
@@ -464,6 +482,12 @@ export default function KnowledgeModerationPage() {
                   <Input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setPage(1);
+                        load();
+                      }
+                    }}
                     placeholder="Tìm theo tiêu đề..."
                     className="max-w-xs"
                   />
@@ -491,48 +515,58 @@ export default function KnowledgeModerationPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(items ?? []).map((d) => (
-                        <TableRow key={d.id}>
-                          <TableCell className="font-medium">{d.title ?? '(no title)'}</TableCell>
-                          <TableCell>
-                            {d.sourceUrl ? (
-                              <a
-                                className="underline"
-                                href={d.sourceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                link
-                              </a>
-                            ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                          <TableCell>{d.chunkCount}</TableCell>
-                          <TableCell>{new Date(d.createdAt).toLocaleString()}</TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button size="sm" variant="outline" onClick={() => openEdit(d)}>
-                              Sửa
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteDoc(d.id)}
-                            >
-                              Xóa
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {!items.length && !loading && (
+                      {loading ? (
                         <TableRow>
                           <TableCell
                             colSpan={5}
-                            className="text-center text-muted-foreground"
+                            className="text-center text-muted-foreground py-8"
+                          >
+                            Đang tải...
+                          </TableCell>
+                        </TableRow>
+                      ) : (items ?? []).length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center text-muted-foreground py-8"
                           >
                             Không có tài liệu
                           </TableCell>
                         </TableRow>
+                      ) : (
+                        (items ?? []).map((d) => (
+                          <TableRow key={d.id}>
+                            <TableCell className="font-medium">{d.title ?? '(no title)'}</TableCell>
+                            <TableCell>
+                              {d.sourceUrl ? (
+                                <a
+                                  className="underline"
+                                  href={d.sourceUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  link
+                                </a>
+                              ) : (
+                                '-'
+                              )}
+                            </TableCell>
+                            <TableCell>{d.chunkCount ?? 0}</TableCell>
+                            <TableCell>{new Date(d.createdAt).toLocaleString()}</TableCell>
+                            <TableCell className="text-right space-x-2">
+                              <Button size="sm" variant="outline" onClick={() => openEdit(d)}>
+                                Sửa
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteDoc(d.id)}
+                              >
+                                Xóa
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
