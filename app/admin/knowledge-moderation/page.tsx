@@ -70,14 +70,16 @@ export default function KnowledgeModerationPage() {
     setLoading(true);
     try {
       const res = await knowledgeAPI.listDocuments(page, pageSize, q || undefined);
-      setItems(res.items);
-      setTotal(res.total);
+      setItems(res?.items ?? []);
+      setTotal(res?.total ?? 0);
     } catch (e: any) {
       toast({
         title: 'Lỗi tải danh sách',
         description: e?.message ?? 'Không thể tải tài liệu',
         variant: 'destructive',
       });
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
