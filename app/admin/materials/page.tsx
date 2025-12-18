@@ -466,7 +466,7 @@ export default function AdminMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {materials.filter(m => m.status === MaterialStatus.Pending).length}
+                  {(materials || []).filter(m => m.status === MaterialStatus.Pending).length}
                 </p>
                 <p className="text-sm text-muted-foreground">Chờ duyệt</p>
               </div>
@@ -480,7 +480,7 @@ export default function AdminMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-green-600">
-                  {materials.filter(m => m.status === MaterialStatus.Accepted).length}
+                  {(materials || []).filter(m => m.status === MaterialStatus.Accepted).length}
                 </p>
                 <p className="text-sm text-muted-foreground">Đã duyệt</p>
               </div>
@@ -494,7 +494,7 @@ export default function AdminMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-red-600">
-                  {materials.filter(m => m.status === MaterialStatus.Rejected).length}
+                  {(materials || []).filter(m => m.status === MaterialStatus.Rejected).length}
                 </p>
                 <p className="text-sm text-muted-foreground">Bị từ chối</p>
               </div>
@@ -517,7 +517,7 @@ export default function AdminMaterialsPage() {
           {/* Results Info */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Hiển thị {materials.length} tài liệu
+              Hiển thị {(materials || []).length} tài liệu
               {searchQuery && ' cho từ khóa tìm kiếm'}
             </p>
           </div>
@@ -525,7 +525,7 @@ export default function AdminMaterialsPage() {
           {/* Materials List */}
           {loading ? (
             <MaterialSkeleton />
-          ) : materials.length === 0 ? (
+          ) : (materials || []).length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -543,7 +543,7 @@ export default function AdminMaterialsPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {materials.map((material) => (
+              {(materials || []).map((material) => (
                 <MaterialCard
                   key={material.id}
                   material={material}
