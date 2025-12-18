@@ -2,30 +2,15 @@ import { fetchWrapper } from '@/lib/fetchWrapper';
 import type { CommentResponseDto, CommentRequestDto, PageResult } from '@/lib/types';
 
 export const commentAPI = {
-  // Get comments by post with pagination
-  getByPost: async (postId: string, params?: {
-    page?: number;
-    pageSize?: number;
-  }): Promise<PageResult<CommentResponseDto>> => {
-    const queryParams = new URLSearchParams();
-
-    // Set default values
-    const page = params?.page ?? 1;
-    const pageSize = params?.pageSize ?? 20;
-
-    queryParams.append('page', page.toString());
-    queryParams.append('pageSize', pageSize.toString());
-
-    const queryString = queryParams.toString();
-    const url = `/comment/by-post/${postId}${queryString ? `?${queryString}` : ''}`;
-
-    return fetchWrapper.get<PageResult<CommentResponseDto>>(url);
+  // Get all comments by post (backend doesn't use pagination)
+  getByPost: async (postId: string): Promise<CommentResponseDto[]> => {
+    const url = `/comment/by-post/${postId}`;
+    return fetchWrapper.get<CommentResponseDto[]>(url);
   },
 
-  // Legacy method for backward compatibility - gets first page
+  // Legacy method for backward compatibility - same as getByPost
   getByPostLegacy: async (postId: string): Promise<CommentResponseDto[]> => {
-    const result = await commentAPI.getByPost(postId);
-    return result.items;
+    return commentAPI.getByPost(postId);
   },
 
   create: async (payload: CommentRequestDto): Promise<CommentResponseDto> =>

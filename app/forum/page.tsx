@@ -18,7 +18,6 @@ import { PostCard } from '@/components/forum/PostCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { PaginationControls } from '@/components/ui/pagination-controls';
 import { PlusCircle, Search, Clock, Filter } from 'lucide-react';
 
 type PostFetchStrategy = 'all' | 'byUser' | 'recommended';
@@ -27,26 +26,22 @@ const FETCH_STRATEGIES: Record<
   PostFetchStrategy,
   (args?: {
     userId?: string;
-    page?: number;
-    pageSize?: number;
     includeAll?: boolean;
     isAdmin?: boolean;
   }) => Promise<{ items: PostResponseDto[]; total: number }>
 > = {
   all: async (args = {}) => {
-    const { page = 1, pageSize = 20, includeAll, isAdmin } = args;
+    const { includeAll, isAdmin } = args;
     const result = await postAPI.getAll({
-      page,
-      pageSize,
       includeAll: includeAll || isAdmin
     });
     return { items: result.items, total: result.total };
   },
   byUser: async (args = {}) => {
     const userId = args.userId;
-    const { page = 1, pageSize = 20, includeAll, isAdmin } = args;
+    const { includeAll, isAdmin } = args;
     if (!userId) return { items: [], total: 0 };
-    const result = await postAPI.getByUser(userId, { page, pageSize });
+    const result = await postAPI.getByUser(userId);
     return { items: result.items, total: result.total };
   },
   recommended: async (args = {}) => {
@@ -72,18 +67,11 @@ export default function ForumPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [strategy, setStrategy] = useState<PostFetchStrategy>('recommended');
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [pageSize] = useState(20);
-
-  const fetchPosts = useCallback(async (page = currentPage) => {
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const { items, total } = await FETCH_STRATEGIES[strategy]({
         userId: profile?.id,
-        page,
-        pageSize,
         includeAll: isAdmin, // Admins can see all statuses
         isAdmin // Pass admin flag to strategies
       });
@@ -92,30 +80,22 @@ export default function ForumPage() {
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setRawPosts(sorted);
-      setTotalItems(total);
     } catch (error) {
       console.error('Failed to load posts:', error);
       toast({ title: 'Error', description: 'Failed to load posts', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [strategy, profile?.id, currentPage, pageSize, isAdmin, toast]);
+  }, [strategy, profile?.id, isAdmin, toast]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Reset to first page when strategy or search changes
+  // Refetch posts when strategy or search changes
   useEffect(() => {
-    setCurrentPage(1);
-    fetchPosts(1);
-  }, [strategy, searchQuery]);
-
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchPosts(page);
-  };
+    fetchPosts();
+  }, [strategy, searchQuery, fetchPosts]);
 
   const uiPosts: UIPost[] = useMemo(() => rawPosts.map(mapPostToUI), [rawPosts]);
 
@@ -237,7 +217,7 @@ export default function ForumPage() {
         <div>
           <h1 className="text-3xl font-bold">{t.forum.title}</h1>
           <p className="text-muted-foreground">
-            {t.forum.subtitle} {isGuest && `(${t.forum.guest})`}
+            {t.forum.subtitle} {isGuest && "(Guest)"}
           </p>
         </div>
 
@@ -264,11 +244,11 @@ export default function ForumPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">{t.forum.loadingPosts}</p>
+            <p className="mt-4 text-muted-foreground">{t.forum.loading}</p>
           </div>
         ) : filteredPosts.length === 0 ? (
           <Card className="p-12 text-center">
-            <p className="text-muted-foreground">{t.forum.noPostsFound}</p>
+            <p className="text-muted-foreground">{t.forum.noPosts}</p>
             {!isGuest && (
               <Link href="/forum/create">
                 <Button className="mt-4">{t.forum.createFirstPost}</Button>
@@ -286,7 +266,7 @@ export default function ForumPage() {
               <PostCard
                 post={post}
                 canReact={!isGuest}
-                signInHint={isGuest ? t.forum.signInToReact : undefined}
+                signInHint={isGuest ? "Sign in to react" : undefined}
                 onLike={() => handleReact(post.id, 'like')}
                 onDislike={() => handleReact(post.id, 'dislike')}
                 isLiked={post.isPositiveReacted === true}
@@ -297,23 +277,6 @@ export default function ForumPage() {
         )}
       </div>
 
-      {/* Pagination */}
-      {strategy !== 'recommended' && (
-        <div className="flex justify-center mt-6">
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={Math.ceil(totalItems / pageSize)}
-            onPageChange={handlePageChange}
-          />
-        </div>
-      )}
-
-      {/* Results info */}
-      {!loading && strategy !== 'recommended' && (
-        <div className="text-center text-sm text-muted-foreground">
-          {t.forum.showing} {filteredPosts.length} {t.forum.of} {totalItems} {t.forum.posts}
-        </div>
-      )}
-    </div>
+          </div>
   );
 }

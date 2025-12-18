@@ -115,29 +115,26 @@ function TreeNode({
         {/* Main Node Button for selection */}
         <button
           onClick={() => onSelect(category.id)}
-          className={`relative transition-all duration-300 hover:scale-105 z-20 ${
-            isSelected ? 'scale-105' : ''
-          }`}
+          className={`relative transition-all duration-300 hover:scale-105 z-20 ${isSelected ? 'scale-105' : ''
+            }`}
         >
           <div
-            className={`w-20 h-20 rounded-full bg-gradient-to-br ${colorClass} shadow-lg flex flex-col items-center justify-center text-white relative transition-all duration-300 ${
-              hasMaterials ? 'ring-4 ring-white/30' : ''
-            } ${isHighlighted ? 'animate-pulse ring-4 ring-yellow-400/50' : ''} ${
-              isSelected ? 'ring-4 ring-green-400 scale-105 shadow-green-400/50' : ''
-            }`}
+            className={`w-20 h-20 rounded-full bg-gradient-to-br ${colorClass} shadow-lg flex flex-col items-center justify-center text-white relative transition-all duration-300 ${hasMaterials ? 'ring-4 ring-white/30' : ''
+              } ${isHighlighted ? 'animate-pulse ring-4 ring-yellow-400/50' : ''} ${isSelected ? 'ring-4 ring-green-400 scale-105 shadow-green-400/50' : ''
+              }`}
           >
             {hasMaterials ? (
-            <FolderOpen className="w-6 h-6 mb-1" />
-          ) : (
-            <Folder className="w-6 h-6 mb-1" />
-          )}
+              <FolderOpen className="w-6 h-6 mb-1" />
+            ) : (
+              <Folder className="w-6 h-6 mb-1" />
+            )}
 
-          {/* Material Count Badge */}
-          {materialCount > 0 && (
-            <div className="absolute -top-2 -right-2 bg-white text-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md">
-              {materialCount}
-            </div>
-          )}
+            {/* Material Count Badge */}
+            {materialCount > 0 && (
+              <div className="absolute -top-2 -right-2 bg-white text-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md">
+                {materialCount}
+              </div>
+            )}
           </div>
         </button>
 
@@ -151,9 +148,8 @@ function TreeNode({
             className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-200 dark:bg-gray-700 rounded-full p-1 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors z-30"
           >
             <ChevronRight
-              className={`w-3 h-3 transition-transform duration-300 ${
-                isExpanded ? 'rotate-90' : ''
-              }`}
+              className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''
+                }`}
             />
           </button>
         )}
@@ -298,12 +294,12 @@ function SkillTreeContainer({
 
               {/* Use the new connection system for children */}
               {category.children &&
-               category.children.length > 0 &&
-               expandedCategories.includes(category.id) && (
-                <div className="relative">
-                  {renderTreeWithConnections(category.children, category, level + 1, [...parentPath, category.name])}
-                </div>
-              )}
+                category.children.length > 0 &&
+                expandedCategories.includes(category.id) && (
+                  <div className="relative">
+                    {renderTreeWithConnections(category.children, category, level + 1, [...parentPath, category.name])}
+                  </div>
+                )}
             </div>
           );
         })}
@@ -425,7 +421,7 @@ function MaterialCard({ material, categoryPath }: { material: StudyMaterialRespo
 // Helper to get all category IDs including children for filtering
 const getCategoryIdsWithDescendants = (selectedIds: string[], categories: MaterialCategory[]): Set<string> => {
   const result = new Set<string>();
-  
+
   const traverse = (nodes: MaterialCategory[], parentSelected: boolean) => {
     for (const node of nodes) {
       const isSelected = parentSelected || selectedIds.includes(node.id);
@@ -437,7 +433,7 @@ const getCategoryIdsWithDescendants = (selectedIds: string[], categories: Materi
       }
     }
   };
-  
+
   traverse(categories, false);
   return result;
 };
@@ -452,23 +448,23 @@ export default function MaterialsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null);
-  
+  const [totalCount, setTotalCount] = useState(0);
+
   // Derived state for category counts
   const categoryMaterials = useMemo(() => {
     const map = new Map<string, StudyMaterialResponse[]>();
-    allMaterials.forEach(mat => {
+    const mats = Array.isArray(allMaterials) ? allMaterials : [];
+
+    mats.forEach(mat => {
       const list = map.get(mat.categoryId) || [];
       list.push(mat);
       map.set(mat.categoryId, list);
     });
+
     return map;
   }, [allMaterials]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 20;
 
   // Fetch categories
   useEffect(() => {
@@ -498,16 +494,21 @@ export default function MaterialsPage() {
     const fetchAllMaterials = async () => {
       setLoading(true);
       try {
-        const response = await studyMaterialAPI.search({
-          status: 1, // 1 = Accepted
-          page: 1,
-          pageSize: 1000, // Get all materials (or a large number)
-        });
-        
-        // Deduplicate materials by ID just in case
-        const uniqueMaterials = Array.from(new Map(response.items.map(item => [item.id, item])).values());
+
+        const response: any = await studyMaterialAPI.search({ status: 1 });
+
+        // hỗ trợ cả 2 kiểu response: { items, total } hoặc trả thẳng array
+        const items: StudyMaterialResponse[] = Array.isArray(response?.items)
+          ? response.items
+          : Array.isArray(response)
+            ? response
+            : [];
+
+        const uniqueMaterials = Array.from(new Map(items.map(item => [item.id, item])).values());
+
         setAllMaterials(uniqueMaterials);
-        setTotalCount(response.total);
+        setTotalCount(typeof response?.total === "number" ? response.total : uniqueMaterials.length);
+
       } catch (error) {
         console.error('Failed to fetch materials:', error);
         toast({
@@ -526,20 +527,21 @@ export default function MaterialsPage() {
   }, [toast]);
 
   const toggleCategoryExpansion = (categoryId: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
+    setExpandedCategories(prev => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.includes(categoryId)
+        ? safe.filter(id => id !== categoryId)
+        : [...safe, categoryId];
+    });
   };
 
   const selectCategory = (categoryId: string) => {
-    // Toggle selection for multi-select functionality
-    setSelectedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
+    setSelectedCategories(prev => {
+      const safe = Array.isArray(prev) ? prev : [];
+      return safe.includes(categoryId)
+        ? safe.filter(id => id !== categoryId)
+        : [...safe, categoryId];
+    });
   };
 
   const highlightCategory = (categoryId: string) => {
@@ -562,14 +564,11 @@ export default function MaterialsPage() {
   };
 
   const getDisplayMaterials = () => {
-    let filtered = allMaterials;
+    let filtered = Array.isArray(allMaterials) ? allMaterials : [];
 
-    // Filter by highlighted category (highest priority)
     if (highlightedCategory) {
       filtered = filtered.filter(m => m.categoryId === highlightedCategory);
-    } 
-    // Filter by selected categories
-    else if (selectedCategories.length > 0) {
+    } else if (selectedCategories.length > 0) {
       const allowedIds = getCategoryIdsWithDescendants(selectedCategories, categories);
       filtered = filtered.filter(m => allowedIds.has(m.categoryId));
     }
@@ -692,25 +691,25 @@ export default function MaterialsPage() {
             </CardContent>
           </Card>
         ) : (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-              {displayMaterials.map((item, index) => (
-                <motion.div
-                  key={`${item.material.id}-${item.categoryPath}-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                >
-                  <MaterialCard
-                    material={item.material}
-                    categoryPath={item.categoryPath}
-                  />
-                </motion.div>
-              ))}
+            {displayMaterials.map((item, index) => (
+              <motion.div
+                key={`${item.material.id}-${item.categoryPath}-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+              >
+                <MaterialCard
+                  material={item.material}
+                  categoryPath={item.categoryPath}
+                />
+              </motion.div>
+            ))}
           </motion.div>
         )}
       </div>

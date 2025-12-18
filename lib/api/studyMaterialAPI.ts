@@ -47,20 +47,11 @@ export const materialCategoryAPI = {
 export const studyMaterialAPI = {
   // Search study materials (public library browsing)
   search: async (params?: {
-    page?: number;
-    pageSize?: number;
     categoryId?: string;
     status?: 0 | 1 | 2; // Using enum values: 0=Pending, 1=Accepted, 2=Rejected
     q?: string;
   }): Promise<{ items: StudyMaterialResponse[]; total: number; page: number; pageSize: number }> => {
     const queryParams = new URLSearchParams();
-
-    // Set default values
-    const page = params?.page ?? 1;
-    const pageSize = params?.pageSize ?? 20;
-
-    queryParams.append('page', page.toString());
-    queryParams.append('pageSize', pageSize.toString());
 
     if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
     if (params?.status !== undefined) queryParams.append('status', params.status.toString());

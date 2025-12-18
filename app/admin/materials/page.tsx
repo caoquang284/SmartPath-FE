@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { studyMaterialAPI } from '@/lib/api/studyMaterialAPI';
 import { StudyMaterialResponse, MaterialStatus, SourceType } from '@/lib/types';
+import { isAdmin } from '@/lib/auth-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -310,7 +311,7 @@ export default function AdminMaterialsPage() {
 
   // Check if user is admin
   useEffect(() => {
-    if (profile && profile.role !== 'admin') {
+    if (profile && !isAdmin(profile)) {
       toast({
         title: 'Không có quyền truy cập',
         description: 'Trang này chỉ dành cho quản trị viên',
@@ -329,10 +330,8 @@ export default function AdminMaterialsPage() {
       else if (activeTab === 'rejected') statusFilter = MaterialStatus.Rejected;
 
       const response = await studyMaterialAPI.search({
-        status: statusFilter,
+        status: statusFilter as 0 | 1 | 2 | undefined,
         q: searchQuery || undefined,
-        page: currentPage,
-        pageSize,
       });
 
       setMaterials(response.items);
@@ -354,7 +353,7 @@ export default function AdminMaterialsPage() {
   };
 
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    if (profile && isAdmin(profile)) {
       fetchMaterials();
     }
   }, [profile, activeTab, currentPage, searchQuery, toast]);
@@ -390,7 +389,7 @@ export default function AdminMaterialsPage() {
   };
 
   // Redirect if not admin
-  if (profile && profile.role !== 'admin') {
+  if (profile && !isAdmin(profile)) {
     return (
       <div>
         <Card>

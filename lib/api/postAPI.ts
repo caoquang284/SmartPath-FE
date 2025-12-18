@@ -2,22 +2,14 @@ import { fetchWrapper } from '@/lib/fetchWrapper';
 import type { PostRequestDto, PostResponseDto, PageResult } from '@/lib/types';
 
 export const postAPI = {
-  // Get all posts with pagination and filtering
+  // Get all posts with filtering
   getAll: async (params?: {
-    page?: number;
-    pageSize?: number;
-    categoryIds?: string[];
     isQuestion?: boolean;
     status?: 'Accepted' | 'Pending' | 'Rejected';
     includeAll?: boolean; // For admin to see all statuses
   }): Promise<PageResult<PostResponseDto>> => {
     const queryParams = new URLSearchParams();
 
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
-    if (params?.categoryIds && params.categoryIds.length > 0) {
-      queryParams.append('categoryIds', params.categoryIds.join(','));
-    }
     if (params?.isQuestion !== undefined) {
       queryParams.append('isQuestion', params.isQuestion.toString());
     }
@@ -41,33 +33,30 @@ export const postAPI = {
     fetchWrapper.get<PostResponseDto>(`/post/${id}`),
 
   // Get posts by user (using search API for better functionality)
-  getByUser: async (userId: string, params?: {
-    page?: number;
-    pageSize?: number;
-  }): Promise<PageResult<PostResponseDto>> => {
+  getByUser: async (userId: string): Promise<PageResult<PostResponseDto>> => {
     // Handle both array (legacy) and PageResult (new) responses
     const response = await fetchWrapper.get<any>(`/post/by-user/${userId}`);
-    
+
     if (Array.isArray(response)) {
       return {
         total: response.length,
-        page: params?.page || 1,
-        pageSize: params?.pageSize || 10,
+        page: 1,
+        pageSize: response.length,
         items: response
       };
     }
-    
+
     // If it's already a PageResult structure
     if (response && Array.isArray(response.items)) {
       return response;
     }
 
-    // Fallback for unexpected structure
+    // Fallback for unexpected structure - assume it's the array itself
     return {
-      total: 0,
+      total: Array.isArray(response) ? response.length : 0,
       page: 1,
-      pageSize: 10,
-      items: []
+      pageSize: Array.isArray(response) ? response.length : 0,
+      items: Array.isArray(response) ? response : []
     };
   },
 
@@ -88,17 +77,16 @@ export const postAPI = {
     return fetchWrapper.get(`/category`);
   },
 
-  // Get recommended posts (using getAll with status filter)
+  // Get recommended posts (using the backend recommendations endpoint)
   getRecommendations: async (limit?: number, status?: 'Accepted' | 'Pending' | 'Rejected'): Promise<PostResponseDto[]> => {
     const queryParams = new URLSearchParams();
-    if (limit) queryParams.append('pageSize', limit.toString());
+    if (limit) queryParams.append('limit', limit.toString());
     if (status) queryParams.append('status', status);
 
     const queryString = queryParams.toString();
-    const url = `/post${queryString ? `?${queryString}` : ''}`;
+    const url = `/post/recommendations${queryString ? `?${queryString}` : ''}`;
 
-    const result = await fetchWrapper.get<PageResult<PostResponseDto>>(url);
-    return result.items;
+    return fetchWrapper.get<PostResponseDto[]>(url);
   },
 
   // Admin: Update post status
@@ -118,7 +106,7 @@ export const postAPI = {
 // Legacy compatibility functions
 export const postAPILegacy = {
   getAll: async (): Promise<PostResponseDto[]> => {
-    const result = await postAPI.getAll({ page: 1, pageSize: 100 });
+    const result = await postAPI.getAll({});
     return result.items;
   },
 
@@ -126,7 +114,7 @@ export const postAPILegacy = {
     postAPI.getById(id),
 
   getByUser: async (userId: string): Promise<PostResponseDto[]> => {
-    const result = await postAPI.getByUser(userId, { page: 1, pageSize: 100 });
+    const result = await postAPI.getByUser(userId);
     return result.items;
   },
 

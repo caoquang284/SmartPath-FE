@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { materialCategoryAPI, studyMaterialAPI } from '@/lib/api/studyMaterialAPI';
 import { MaterialCategory, StudyMaterialResponse, MaterialCategoryCreateRequest, MaterialCategoryUpdateRequest, SourceType } from '@/lib/types';
+import { isAdmin } from '@/lib/auth-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -403,7 +404,7 @@ export default function AdminCategoriesPage() {
 
   // Check admin permissions
   useEffect(() => {
-    if (profile && profile.role !== 'admin') {
+    if (profile && !isAdmin(profile)) {
       toast({
         title: 'Không có quyền truy cập',
         description: 'Trang này chỉ dành cho quản trị viên',
@@ -414,7 +415,7 @@ export default function AdminCategoriesPage() {
 
   // Fetch categories
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    if (profile && String(profile.role).toLowerCase() === 'admin') {
       const fetchCategories = async () => {
         try {
           const data = await materialCategoryAPI.getTree();
@@ -453,9 +454,10 @@ export default function AdminCategoriesPage() {
     });
   };
 
-  const handleCreateCategory = async (data: MaterialCategoryCreateRequest) => {
+  const handleCreateCategory = async (data: MaterialCategoryCreateRequest | MaterialCategoryUpdateRequest) => {
     try {
-      await materialCategoryAPI.create(data);
+      // Ensure data matches MaterialCategoryCreateRequest type for create operation
+      await materialCategoryAPI.create(data as MaterialCategoryCreateRequest);
       toast({
         title: 'Thành công',
         description: 'Đã tạo danh mục mới',
@@ -546,7 +548,7 @@ export default function AdminCategoriesPage() {
   };
 
   // Redirect if not admin
-  if (profile && profile.role !== 'admin') {
+  if (profile && !isAdmin(profile)) {
     return (
       <div>
         <Card>

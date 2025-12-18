@@ -115,13 +115,6 @@ function PostDetailContent() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // Comment pagination state
-  const [commentPage, setCommentPage] = useState(1);
-  const [commentPageSize] = useState(10);
-  const [totalCommentsCount, setTotalCommentsCount] = useState(0);
-  const [hasMoreComments, setHasMoreComments] = useState(true);
-  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
 
   //comment attachments
@@ -242,91 +235,41 @@ function PostDetailContent() {
     }
   }, [postId]);
 
-  // Add a debounce for scroll events
-  const [isScrollLoading, setIsScrollLoading] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
-
-  const loadComments = useCallback(async (isLoadMore = false) => {
+  
+  const loadComments = useCallback(async () => {
     if (!postId) return;
 
-    const pageToLoad = isLoadMore ? commentPage + 1 : 1;
-
-    if (isLoadMore) {
-      setLoadingMoreComments(true);
-      // Add small delay to prevent rapid scrolling from causing jitter
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
     try {
-      const result = await commentAPI.getByPost(postId, {
-        page: pageToLoad,
-        pageSize: commentPageSize,
-      });
+      console.log('Loading comments for postId:', postId);
+      // Get all comments at once
+      const flat = await commentAPI.getByPost(postId);
+      console.log('Raw comments from API:', flat);
 
-      const flat = result?.items || [];
       let tree = mapCommentsToUITree(flat, postId, 2);
+      console.log('Comments mapped to tree:', tree);
 
-      // ... attach materials + sort như bạn đang làm
-
-      const totalCount = result?.total || 0;
-      const totalPages = Math.ceil(totalCount / commentPageSize);
-
-      if (isLoadMore) {
-        setComments(prev => [...prev, ...tree]);
-        setCommentPage(pageToLoad);
-      } else {
-        setComments(tree);
-        setCommentPage(1);
-        setTotalCommentsCount(totalCount);
-        setInitialLoadComplete(true); // Mark initial load as complete
-      }
-
-      setHasMoreComments(pageToLoad < totalPages);
+      // Note: We're not attaching materials here since they belong to the post, not comments
+      // If comments have their own materials, they should be loaded separately
+      setComments(tree);
     } catch (e) {
       console.error('Failed to load comments', e);
-    } finally {
-      if (isLoadMore) {
-        setLoadingMoreComments(false);
-        setIsScrollLoading(false);
-      }
+      toast({
+        title: 'Error',
+        description: 'Failed to load comments',
+        variant: 'destructive'
+      });
     }
-  }, [postId, commentPage, commentPageSize]);
+  }, [postId]);
 
-  const loadMoreComments = () => {
-    if (!loadingMoreComments && hasMoreComments) {
-      loadComments(true);
-    }
-  };
-
-  // Infinite scroll handler - detects scroll to bottom of page with debouncing
+  // Simple scroll handler to track user scrolling
   const handleScroll = useCallback(() => {
-    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+    const { scrollTop } = document.documentElement;
 
     // Mark that user has scrolled
     if (scrollTop > 50) {
       setUserHasScrolled(true);
     }
-
-    // Only load more if:
-    // 1. Initial load is complete
-    // 2. User has scrolled at least once
-    // 3. At bottom of page (within 200px)
-    // 4. Not already loading
-    // 5. There are more comments to load
-    if (initialLoadComplete && userHasScrolled && (scrollHeight - scrollTop - clientHeight < 200) && !loadingMoreComments && !isScrollLoading && hasMoreComments) {
-      setIsScrollLoading(true);
-
-      // Clear any existing timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-
-      // Debounce the scroll event to prevent rapid loading
-      scrollTimeoutRef.current = setTimeout(() => {
-        loadComments(true);
-      }, 500);
-    }
-  }, [loadingMoreComments, hasMoreComments, isScrollLoading, initialLoadComplete, userHasScrolled]);
+  }, []);
 
   // Prevent automatic scroll on page load
   useEffect(() => {
@@ -365,9 +308,6 @@ function PostDetailContent() {
 
     return () => {
       window.removeEventListener('scroll', throttledHandleScroll);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
     };
   }, [handleScroll]);
 
@@ -819,7 +759,7 @@ function PostDetailContent() {
         );
       }
 
-      await loadComments(false); // Reset comments after new comment
+      await loadComments(); // Reload comments after new comment
 
       cImages.forEach((i) => URL.revokeObjectURL(i.preview));
       setCImages([]); setCDocs([]); setCUploadProgress(0);
@@ -1391,65 +1331,32 @@ function PostDetailContent() {
           <Separator />
 
           <div className="space-y-4" data-comments-container>
-            {comments.length === 0 && !loadingMoreComments ? (
+            {comments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Chưa có comment nào!</p>
             ) : (
-              <>
-                {comments.map((c) => (
-                  <div key={c.id} id={`comment-${c.id}`}>
-                    <CommentCard
-                      comment={c}
-                      canReact={!isGuest}
-                      canReply={!isGuest}
-                      onLike={(id) => handleCommentReact(id, 'like')}
-                      onDislike={(id) => handleCommentReact(id, 'dislike')}
-                      onSubmitReply={(parentId, content, imgs, docs) =>
-                        handleSubmitReply(parentId, content, imgs, docs)
-                      }
-                      onPreview={openPreview}
-                      canEdit={profile?.id === c.author.id}
-                      onEdit={handleEditComment}
-                      onUpdate={handleUpdateComment}
-                      onDelete={handleDeleteComment}
-                      editingComment={editingComment}
-                      editCommentContent={editCommentContent}
-                      setEditCommentContent={setEditCommentContent}
-                      updatingComment={updatingComment}
-                    />
-                  </div>
-                ))}
-
-                {/* Skeleton loaders when loading more comments */}
-                {loadingMoreComments && (
-                  <div className="space-y-4">
-                    <div className="text-center text-sm text-muted-foreground py-2">
-                      Loading more comments...
-                    </div>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <CommentSkeleton key={`skeleton-${i}`} />
-                    ))}
-                  </div>
-                )}
-
-                {/* Show indicator when there are more comments to load */}
-                {hasMoreComments && !loadingMoreComments && (
-                  <div className="text-center py-4">
-                    <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      <span>Scroll to bottom for more comments</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* End of comments indicator */}
-                {!hasMoreComments && comments.length > 0 && (
-                  <div className="text-center py-4 text-sm text-muted-foreground">
-                    Showing all {countTree(comments)} comments
-                  </div>
-                )}
-              </>
+              comments.map((c) => (
+                <div key={c.id} id={`comment-${c.id}`}>
+                  <CommentCard
+                    comment={c}
+                    canReact={!isGuest}
+                    canReply={!isGuest}
+                    onLike={(id) => handleCommentReact(id, 'like')}
+                    onDislike={(id) => handleCommentReact(id, 'dislike')}
+                    onSubmitReply={(parentId, content, imgs, docs) =>
+                      handleSubmitReply(parentId, content, imgs, docs)
+                    }
+                    onPreview={openPreview}
+                    canEdit={profile?.id === c.author.id}
+                    onEdit={handleEditComment}
+                    onUpdate={handleUpdateComment}
+                    onDelete={handleDeleteComment}
+                    editingComment={editingComment}
+                    editCommentContent={editCommentContent}
+                    setEditCommentContent={setEditCommentContent}
+                    updatingComment={updatingComment}
+                  />
+                </div>
+              ))
             )}
           </div>
         </CardContent>

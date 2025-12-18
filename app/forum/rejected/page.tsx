@@ -27,7 +27,8 @@ import {
   ArrowLeft,
   RefreshCw,
   Info,
-  Lightbulb
+  Lightbulb,
+  CheckCircle
 } from 'lucide-react';
 import { PostStatusBadge } from '@/components/forum/PostStatusBadge';
 
@@ -59,7 +60,7 @@ export default function RejectedPostsPage() {
     setLoading(true);
     try {
       // Fetch all posts by user and filter for rejected ones
-      const result = await postAPI.getByUser(profile.id, { page: 1, pageSize: 100 });
+      const result = await postAPI.getByUser(profile.id);
       const rejectedPosts = result.items.filter(post => post.status === 'Rejected');
 
       const mappedPosts = rejectedPosts.map(mapPostToUI);
@@ -329,7 +330,7 @@ export default function RejectedPostsPage() {
                       {post.aiCategoryMatch === false && (
                         <li>Ensure your post content matches the selected categories</li>
                       )}
-                      {post.aiConfidence !== undefined && post.aiConfidence < 0.7 && (
+                      {post.aiConfidence !== null && post.aiConfidence !== undefined && post.aiConfidence < 0.7 && (
                         <li>Make your post more detailed and specific</li>
                       )}
                       <li>Check for spam or repetitive content</li>

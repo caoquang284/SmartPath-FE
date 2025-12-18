@@ -289,10 +289,10 @@ export default function AdminStudyMaterialsDashboard() {
 
           // Fetch materials stats
           const [pendingData, acceptedData, rejectedData, recentData] = await Promise.all([
-            studyMaterialAPI.search({ status: MaterialStatus.Pending, page: 1, pageSize: 10 }),
-            studyMaterialAPI.search({ status: MaterialStatus.Accepted, page: 1, pageSize: 1 }),
-            studyMaterialAPI.search({ status: MaterialStatus.Rejected, page: 1, pageSize: 1 }),
-            studyMaterialAPI.search({ page: 1, pageSize: 5 })
+            studyMaterialAPI.search({ status: MaterialStatus.Pending }),
+            studyMaterialAPI.search({ status: MaterialStatus.Accepted }),
+            studyMaterialAPI.search({ status: MaterialStatus.Rejected }),
+            studyMaterialAPI.search({})
           ]);
 
           // Calculate categories stats

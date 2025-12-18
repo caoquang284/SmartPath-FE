@@ -56,9 +56,7 @@ function SearchPageContent() {
     includeSemanticSearch: true,
     includeKeywordSearch: true,
     sortBy: 'relevance',
-    sortOrder: 'desc',
-    page: 1,
-    pageSize: 20
+    sortOrder: 'desc'
   });
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);

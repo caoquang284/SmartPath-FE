@@ -490,8 +490,6 @@ export interface StudyMaterialSearchRequest {
   categoryId?: string;
   status?: MaterialStatus;
   q?: string;
-  page?: number;
-  pageSize?: number;
 }
 
 export interface StudyMaterialSearchResponse extends PageResult<StudyMaterialResponse> {}
@@ -575,8 +573,6 @@ export interface SearchRequest {
   includeKeywordSearch?: boolean;
   sortBy?: 'relevance' | 'created' | 'updated' | 'views' | 'likes' | 'rating';
   sortOrder?: 'asc' | 'desc';
-  page?: number;
-  pageSize?: number;
   fromDate?: string; // ISO date
   toDate?: string; // ISO date
   tags?: string[];
