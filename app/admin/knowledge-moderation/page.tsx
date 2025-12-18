@@ -491,7 +491,7 @@ export default function KnowledgeModerationPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {items.map((d) => (
+                      {(items ?? []).map((d) => (
                         <TableRow key={d.id}>
                           <TableCell className="font-medium">{d.title ?? '(no title)'}</TableCell>
                           <TableCell>
