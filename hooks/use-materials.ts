@@ -84,17 +84,15 @@ export const useMaterials = (options: UseMaterialsOptions = {}): UseMaterialsRet
 
       try {
       const response = await studyMaterialAPI.search({
-        page,
-        pageSize,
         categoryId: categoryId || undefined,
         status: status ? statusMap[status] : undefined,
         q: searchQuery || undefined
       });
 
-      setMaterials(response.items);
-      setCurrentPage(page);
-      setTotalPages(Math.ceil(response.total / pageSize));
-      setTotalCount(response.total);
+      setMaterials(response);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalCount(response.length);
     } catch (err) {
       console.error('Failed to load materials:', err);
       setError('Failed to load materials');
@@ -104,7 +102,7 @@ export const useMaterials = (options: UseMaterialsOptions = {}): UseMaterialsRet
     } finally {
       setLoading(false);
     }
-  }, [categoryId, status, searchQuery, pageSize]);
+  }, [categoryId, status, searchQuery]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -276,15 +274,13 @@ export const useMyMaterials = (options: UseMaterialsOptions = {}) => {
 
     try {
       const response = await studyMaterialAPI.getMine({
-        page,
-        pageSize: options.pageSize || 20,
         status: options.defaultStatus ? statusMap[options.defaultStatus] : undefined
       });
 
-      setMaterials(response.items);
-      setCurrentPage(page);
-      setTotalPages(Math.ceil(response.total / (options.pageSize || 20)));
-      setTotalCount(response.total);
+      setMaterials(response);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalCount(response.length);
     } catch (err) {
       console.error('Failed to load my materials:', err);
       setError('Failed to load your materials');
@@ -294,7 +290,7 @@ export const useMyMaterials = (options: UseMaterialsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [options.pageSize, options.defaultStatus]);
+  }, [options.defaultStatus]);
 
   return {
     materials,

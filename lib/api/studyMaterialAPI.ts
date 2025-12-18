@@ -50,7 +50,7 @@ export const studyMaterialAPI = {
     categoryId?: string;
     status?: 0 | 1 | 2; // Using enum values: 0=Pending, 1=Accepted, 2=Rejected
     q?: string;
-  }): Promise<{ items: StudyMaterialResponse[]; total: number; page: number; pageSize: number }> => {
+  }): Promise<StudyMaterialResponse[]> => {
     const queryParams = new URLSearchParams();
 
     if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
@@ -60,7 +60,7 @@ export const studyMaterialAPI = {
     const queryString = queryParams.toString();
     const url = `/studymaterial/search${queryString ? `?${queryString}` : ''}`;
 
-    return fetchWrapper.get(url);
+    return fetchWrapper.get<StudyMaterialResponse[]>(url);
   },
 
   // Get study material by ID
@@ -158,25 +158,16 @@ export const studyMaterialAPI = {
 
   // Get user's study materials
   getMine: async (params?: {
-    page?: number;
-    pageSize?: number;
     status?: 0 | 1 | 2; // Using enum values: 0=Pending, 1=Accepted, 2=Rejected
-  }): Promise<{ items: StudyMaterialResponse[]; total: number; page: number; pageSize: number }> => {
+  }): Promise<StudyMaterialResponse[]> => {
     const queryParams = new URLSearchParams();
-
-    // Set default values
-    const page = params?.page ?? 1;
-    const pageSize = params?.pageSize ?? 20;
-
-    queryParams.append('page', page.toString());
-    queryParams.append('pageSize', pageSize.toString());
 
     if (params?.status !== undefined) queryParams.append('status', params.status.toString());
 
     const queryString = queryParams.toString();
     const url = `/studymaterial/mine${queryString ? `?${queryString}` : ''}`;
 
-    return fetchWrapper.get(url);
+    return fetchWrapper.get<StudyMaterialResponse[]>(url);
   },
 
   // Admin: Review study material
@@ -242,20 +233,16 @@ export const studyMaterialLegacy = {
     page: number = 1,
     pageSize: number = 20
   ): Promise<MaterialPageResult<StudyMaterialResponse>> => {
-    // For backward compatibility, we need to support page parameters
-    // But we'll use the paginated version
-    const result = await studyMaterialAPI.getMinePaginated({
-      page,
-      pageSize,
+    const result = await studyMaterialAPI.getMine({
       status: status !== undefined ? status as 0 | 1 | 2 : undefined
     });
 
-    // Convert to legacy format
+    // Convert to legacy paginated format (even though backend returns all)
     return {
-      items: result.items,
-      total: result.total,
-      page: result.page,
-      pageSize: result.pageSize
+      items: result,
+      total: result.length,
+      page: 1,
+      pageSize: result.length
     };
   },
 
