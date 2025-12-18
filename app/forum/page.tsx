@@ -10,10 +10,12 @@ import { motion } from 'framer-motion';
 
 import { postAPI } from '@/lib/api/postAPI';
 import { reactionAPI } from '@/lib/api/reactionAPI';
+import { categoryAPI } from '@/lib/api/categoryAPI';
 
-import type { PostResponseDto } from '@/lib/types';
+import type { PostResponseDto, CategoryResponseDto } from '@/lib/types';
 import { mapPostToUI, type UIPost } from '@/lib/mappers/postMapper';
 
+import { CategoryFilter } from '@/components/forum/CategoryFilter';
 import { PostCard } from '@/components/forum/PostCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,27 +30,43 @@ const FETCH_STRATEGIES: Record<
     userId?: string;
     includeAll?: boolean;
     isAdmin?: boolean;
+    categoryId?: string;
+    categoryName?: string;
   }) => Promise<{ items: PostResponseDto[]; total: number }>
 > = {
   all: async (args = {}) => {
-    const { includeAll, isAdmin } = args;
+    const { includeAll, isAdmin, categoryId, categoryName } = args;
     const result = await postAPI.getAll({
-      includeAll: includeAll || isAdmin
+      includeAll: includeAll || isAdmin,
+      categoryId
     });
-    return { items: result.items, total: result.total };
+
+    let items = result.items;
+    if (categoryName) {
+      items = items.filter(p => p.categories?.includes(categoryName));
+    }
+
+    return { items: items, total: items.length };
   },
   byUser: async (args = {}) => {
     const userId = args.userId;
-    const { includeAll, isAdmin } = args;
+    const { includeAll, isAdmin, categoryName } = args;
     if (!userId) return { items: [], total: 0 };
     const result = await postAPI.getByUser(userId);
-    return { items: result.items, total: result.total };
+    let items = result.items;
+    if (categoryName) {
+      items = items.filter(p => p.categories?.includes(categoryName));
+    }
+    return { items: items, total: items.length };
   },
   recommended: async (args = {}) => {
-    const { includeAll, isAdmin } = args;
+    const { includeAll, isAdmin, categoryName } = args;
     // Only get accepted posts for regular users, admins can see all
     const status = (includeAll || isAdmin) ? undefined : 'Accepted';
-    const items = await postAPI.getRecommendations(undefined, status);
+    let items = await postAPI.getRecommendations(undefined, status);
+    if (categoryName) {
+      items = items.filter(p => p.categories?.includes(categoryName));
+    }
     return { items, total: items.length };
   },
 };
@@ -67,13 +85,35 @@ export default function ForumPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [strategy, setStrategy] = useState<PostFetchStrategy>('recommended');
 
+  const [categories, setCategories] = useState<CategoryResponseDto[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await categoryAPI.getAll();
+        setCategories(data);
+      } catch (error) {
+        console.error('Failed to fetch categories', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
+      const categoryName = selectedCategoryId ? categories.find(c => c.id === selectedCategoryId)?.name : undefined;
+
       const { items, total } = await FETCH_STRATEGIES[strategy]({
         userId: profile?.id,
         includeAll: isAdmin, // Admins can see all statuses
-        isAdmin // Pass admin flag to strategies
+        isAdmin, // Pass admin flag to strategies
+        categoryId: selectedCategoryId,
+        categoryName
       });
 
       const sorted = [...items].sort(
@@ -86,7 +126,7 @@ export default function ForumPage() {
     } finally {
       setLoading(false);
     }
-  }, [strategy, profile?.id, isAdmin, toast]);
+  }, [strategy, profile?.id, isAdmin, toast, selectedCategoryId, categories]);
 
   useEffect(() => {
     fetchPosts();
@@ -95,7 +135,7 @@ export default function ForumPage() {
   // Refetch posts when strategy or search changes
   useEffect(() => {
     fetchPosts();
-  }, [strategy, searchQuery, fetchPosts]);
+  }, [strategy, searchQuery, selectedCategoryId, fetchPosts]);
 
   const uiPosts: UIPost[] = useMemo(() => rawPosts.map(mapPostToUI), [rawPosts]);
 
@@ -240,41 +280,56 @@ export default function ForumPage() {
         </div>
       </div>
 
-      <div className="space-y-4 mt-6">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">{t.forum.loading}</p>
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <Card className="p-12 text-center">
-            <p className="text-muted-foreground">{t.forum.noPosts}</p>
-            {!isGuest && (
-              <Link href="/forum/create">
-                <Button className="mt-4">{t.forum.createFirstPost}</Button>
-              </Link>
-            )}
-          </Card>
-        ) : (
-          filteredPosts.map((post, index) => (
-            <motion.div
-              key={post.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
-            >
-              <PostCard
-                post={post}
-                canReact={!isGuest}
-                signInHint={isGuest ? "Sign in to react" : undefined}
-                onLike={() => handleReact(post.id, 'like')}
-                onDislike={() => handleReact(post.id, 'dislike')}
-                isLiked={post.isPositiveReacted === true}
-                isDisliked={post.isNegativeReacted === true}
-              />
-            </motion.div>
-          ))
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+        <div className="lg:col-span-3 space-y-4">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">{t.forum.loading}</p>
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <Card className="p-12 text-center">
+              <p className="text-muted-foreground">{t.forum.noPosts}</p>
+              {!isGuest && (
+                <Link href="/forum/create">
+                  <Button className="mt-4">{t.forum.createFirstPost}</Button>
+                </Link>
+              )}
+            </Card>
+          ) : (
+            filteredPosts.map((post, index) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+              >
+                <PostCard
+                  post={post}
+                  canReact={!isGuest}
+                  signInHint={isGuest ? "Sign in to react" : undefined}
+                  onLike={() => handleReact(post.id, 'like')}
+                  onDislike={() => handleReact(post.id, 'dislike')}
+                  isLiked={post.isPositiveReacted === true}
+                  isDisliked={post.isNegativeReacted === true}
+                />
+              </motion.div>
+            ))
+          )}
+        </div>
+        <div className="lg:col-span-1">
+          <CategoryFilter
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={(id) => {
+              setSelectedCategoryId(id);
+              if (id && strategy === 'recommended') {
+                setStrategy('all');
+              }
+            }}
+            loading={categoriesLoading}
+          />
+        </div>
       </div>
 
           </div>

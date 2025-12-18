@@ -186,6 +186,15 @@ export interface Category {
   name: string;
 }
 
+export interface CategoryResponseDto {
+  id: string;
+  name: string;
+}
+
+export interface CategoryRequestDto {
+  name: string;
+}
+
 export interface CategoryPost {
   id?: string;
   post_id: string;

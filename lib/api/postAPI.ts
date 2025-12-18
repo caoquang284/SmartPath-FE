@@ -7,11 +7,16 @@ export const postAPI = {
     isQuestion?: boolean;
     status?: 'Accepted' | 'Pending' | 'Rejected';
     includeAll?: boolean; // For admin to see all statuses
+    categoryId?: string;
   }): Promise<PageResult<PostResponseDto>> => {
     const queryParams = new URLSearchParams();
 
     if (params?.isQuestion !== undefined) {
       queryParams.append('isQuestion', params.isQuestion.toString());
+    }
+
+    if (params?.categoryId) {
+      queryParams.append('categoryId', params.categoryId);
     }
     // Add status filter if specified (default to Accepted)
     if (params?.includeAll) {
