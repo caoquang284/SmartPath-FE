@@ -22,7 +22,8 @@ import {
   Database,
   FolderTree,
   Search,
-  Folder
+  Folder,
+  Flag
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMessageNotifications } from '@/hooks/use-message-notifications';
@@ -58,6 +59,7 @@ export function Sidebar() {
     { href: '/admin/materials', icon: FileText, label: t.sidebar.adminMaterials },
     { href: '/admin/categories', icon: FolderTree, label: t.sidebar.adminCategories },
     { href: '/admin/user-moderation', icon: UsersIcon, label: t.sidebar.adminUsers },
+    { href: '/admin/reports', icon: Flag, label: 'Reports' },
     { href: '/admin/knowledge-moderation', icon: Database, label: t.sidebar.adminKnowledge },
   ];
 

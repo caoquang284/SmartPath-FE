@@ -38,6 +38,7 @@ import {
   UserPlus,
   Users,
   X,
+  Flag,
 } from 'lucide-react';
 import { PostCard } from '@/components/forum/PostCard';
 import type { UserProfile, BadgeAward, FriendshipResponseDto } from '@/lib/types';
@@ -50,6 +51,7 @@ import AvatarCropDialog from '@/components/profile/AvatarCropDialog';
 import { postAPI } from '@/lib/api/postAPI';
 import { mapPostToUI } from '@/lib/mappers/postMapper';
 import type { UIPost } from '@/lib/mappers/postMapper';
+import { ReportDialog } from '@/components/report/ReportDialog';
 
 type ProfileStats = {
   postsCount: number;
@@ -687,6 +689,16 @@ export default function ProfilePage() {
                           Follow
                         </Button>
                       )}
+
+                      <ReportDialog
+                        type="user"
+                        id={profileId}
+                        trigger={
+                          <Button size="sm" variant="ghost" title="Report User">
+                            <Flag className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                     </>
                   )}
                 </div>

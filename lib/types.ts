@@ -121,9 +121,46 @@ export type ReactionResponseDto = {
 };
 
 export interface ReportRequestDto {
-  post_id: string;
+  postId?: string;
+  commentId?: string;
+  targetUserId?: string;
   reason: string;
   details?: string;
+}
+
+export enum ReportStatus {
+  Pending = 0,
+  Resolved = 1,
+  Rejected = 2
+}
+
+export interface ReportResponseDto {
+  id: string;
+  
+  // CamelCase
+  reporterId?: string;
+  reporterUsername?: string;
+  postId?: string;
+  commentId?: string;
+  targetUserId?: string;
+
+  // Snake_case fallback
+  reporter_id?: string;
+  reporter_username?: string;
+  post_id?: string;
+  comment_id?: string;
+  target_user_id?: string;
+
+  reason: string;
+  details?: string;
+  status: ReportStatus | string;
+  createdAt: string;
+  created_at?: string;
+
+  // Optional expanded fields
+  postTitle?: string;
+  commentContent?: string;
+  targetUserUsername?: string;
 }
 
 export interface ChatOtherUser {

@@ -9,12 +9,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Heart, ThumbsDown, Send, ImagePlus, FilePlus2, FileText, X, Trophy, Medal, Gem, Edit, Trash2 } from 'lucide-react';
+import { Heart, ThumbsDown, Send, ImagePlus, FilePlus2, FileText, X, Trophy, Medal, Gem, Edit, Trash2, Flag } from 'lucide-react';
 
 import type { UIComment } from '@/lib/mappers/commentMapper';
 
 import { useBadgesCatalog, pickPrimaryBadgeByPoints } from '@/hooks/use-badge-catalog';
 import { useLanguage } from '@/context/LanguageContext';
+import { ReportDialog } from '@/components/report/ReportDialog';
 
 type QueuedImage = { id: string; file: File; preview: string };
 type QueuedDoc = { id: string; file: File };
@@ -403,6 +404,22 @@ export function CommentCard({
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
+                )}
+
+                {canReact && (
+                  <ReportDialog
+                    type="comment"
+                    id={comment.id}
+                    trigger={
+                      <button
+                        type="button"
+                        className="hover:text-foreground transition"
+                        title="Report"
+                      >
+                        <Flag className="h-3.5 w-3.5" />
+                      </button>
+                    }
+                  />
                 )}
               </div>
 

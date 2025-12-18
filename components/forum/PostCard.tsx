@@ -6,12 +6,19 @@ import { vi, enUS } from 'date-fns/locale';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Heart, MessageSquare, Pin, ThumbsDown, Clock, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { Heart, MessageSquare, Pin, ThumbsDown, Clock, XCircle, CheckCircle, AlertCircle, MoreVertical, Flag } from 'lucide-react';
 import type { UIPost } from '@/lib/mappers/postMapper';
 import { useBadgesCatalog, pickPrimaryBadgeByPoints } from '@/hooks/use-badge-catalog';
 import { BadgePillFancy } from './BadgePillFancy';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ReportDialog } from '@/components/report/ReportDialog';
 
 interface PostCardProps {
   post: UIPost & {
@@ -84,6 +91,18 @@ export function PostCard({
           </div>
 
           {post.is_pinned && <Pin className="h-4 w-4 text-blue-600 flex-shrink-0" />}
+          
+          {canReact && (
+            <ReportDialog
+              type="post"
+              id={post.id}
+              trigger={
+                <button className="text-muted-foreground hover:text-foreground">
+                  <Flag className="h-4 w-4" />
+                </button>
+              }
+            />
+          )}
         </div>
       </CardHeader>
 
