@@ -277,10 +277,8 @@ function CategoryDetail({ category, onClose }: CategoryDetailProps) {
       try {
         const response = await studyMaterialAPI.search({
           categoryId: category.id,
-          page: 1,
-          pageSize: 10,
         });
-        setMaterials(response.items);
+        setMaterials(response.slice(0, 10));
       } catch (error) {
         console.error('Failed to fetch materials:', error);
       } finally {
