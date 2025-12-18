@@ -50,17 +50,21 @@ export const studyMaterialAPI = {
     categoryId?: string;
     status?: 0 | 1 | 2; // Using enum values: 0=Pending, 1=Accepted, 2=Rejected
     q?: string;
-  }): Promise<StudyMaterialResponse[]> => {
+    page?: number;
+    pageSize?: number;
+  }): Promise<MaterialPageResult<StudyMaterialResponse>> => {
     const queryParams = new URLSearchParams();
 
     if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
     if (params?.status !== undefined) queryParams.append('status', params.status.toString());
     if (params?.q) queryParams.append('q', params.q);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
 
     const queryString = queryParams.toString();
     const url = `/studymaterial/search${queryString ? `?${queryString}` : ''}`;
 
-    return fetchWrapper.get<StudyMaterialResponse[]>(url);
+    return fetchWrapper.get<MaterialPageResult<StudyMaterialResponse>>(url);
   },
 
   // Get study material by ID

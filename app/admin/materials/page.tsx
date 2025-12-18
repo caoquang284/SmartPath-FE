@@ -330,17 +330,17 @@ export default function AdminMaterialsPage() {
   const fetchStats = async () => {
     try {
       const [allMaterials, pendingMaterials, acceptedMaterials, rejectedMaterials] = await Promise.all([
-        studyMaterialAPI.search({}),
-        studyMaterialAPI.search({ status: MaterialStatus.Pending }),
-        studyMaterialAPI.search({ status: MaterialStatus.Accepted }),
-        studyMaterialAPI.search({ status: MaterialStatus.Rejected })
+        studyMaterialAPI.search({ pageSize: 1 }),
+        studyMaterialAPI.search({ status: MaterialStatus.Pending, pageSize: 1 }),
+        studyMaterialAPI.search({ status: MaterialStatus.Accepted, pageSize: 1 }),
+        studyMaterialAPI.search({ status: MaterialStatus.Rejected, pageSize: 1 })
       ]);
 
       setStats({
-        total: allMaterials.length,
-        pending: pendingMaterials.length,
-        accepted: acceptedMaterials.length,
-        rejected: rejectedMaterials.length
+        total: allMaterials.total,
+        pending: pendingMaterials.total,
+        accepted: acceptedMaterials.total,
+        rejected: rejectedMaterials.total
       });
     } catch (error: any) {
       console.error('Failed to fetch stats:', error);
@@ -359,11 +359,13 @@ export default function AdminMaterialsPage() {
       const response = await studyMaterialAPI.search({
         status: statusFilter as 0 | 1 | 2 | undefined,
         q: searchQuery || undefined,
+        page: currentPage,
+        pageSize: pageSize,
       });
 
-      setMaterials(response);
-      setTotalPages(1);
-      setTotalCount(response.length);
+      setMaterials(response.items);
+      setTotalPages(Math.ceil(response.total / pageSize));
+      setTotalCount(response.total);
     } catch (error: any) {
       console.error('Failed to fetch materials:', error);
       toast({
