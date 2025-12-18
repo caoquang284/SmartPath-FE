@@ -148,36 +148,34 @@ function MaterialCard({ material, onReview, isReviewing }: MaterialCardProps) {
             )}
 
             {/* Admin Actions */}
-            {material.status === MaterialStatus.Pending && (
-              <div className="flex gap-2 pt-2 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-green-600 hover:text-green-700"
-                  onClick={() => {
-                    setReviewDecision('Accepted');
-                    setShowReviewDialog(true);
-                  }}
-                  disabled={isReviewing}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Duyệt
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-red-600 hover:text-red-700"
-                  onClick={() => {
-                    setReviewDecision('Rejected');
-                    setShowReviewDialog(true);
-                  }}
-                  disabled={isReviewing}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Từ chối
-                </Button>
-              </div>
-            )}
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-green-600 hover:text-green-700"
+                onClick={() => {
+                  setReviewDecision('Accepted');
+                  setShowReviewDialog(true);
+                }}
+                disabled={isReviewing || material.status === MaterialStatus.Accepted}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Duyệt
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-red-600 hover:text-red-700"
+                onClick={() => {
+                  setReviewDecision('Rejected');
+                  setShowReviewDialog(true);
+                }}
+                disabled={isReviewing || material.status === MaterialStatus.Rejected}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Từ chối
+              </Button>
+            </div>
 
             {/* Quick Actions */}
             <div className="flex gap-2 pt-2 border-t">
@@ -309,6 +307,14 @@ export default function AdminMaterialsPage() {
   const [isReviewing, setIsReviewing] = useState(false);
   const pageSize = 12;
 
+  // Stats state
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    accepted: 0,
+    rejected: 0
+  });
+
   // Check if user is admin
   useEffect(() => {
     if (profile && !isAdmin(profile)) {
@@ -319,6 +325,27 @@ export default function AdminMaterialsPage() {
       });
     }
   }, [profile, toast]);
+
+  // Fetch stats
+  const fetchStats = async () => {
+    try {
+      const [allMaterials, pendingMaterials, acceptedMaterials, rejectedMaterials] = await Promise.all([
+        studyMaterialAPI.search({}),
+        studyMaterialAPI.search({ status: MaterialStatus.Pending }),
+        studyMaterialAPI.search({ status: MaterialStatus.Accepted }),
+        studyMaterialAPI.search({ status: MaterialStatus.Rejected })
+      ]);
+
+      setStats({
+        total: allMaterials.length,
+        pending: pendingMaterials.length,
+        accepted: acceptedMaterials.length,
+        rejected: rejectedMaterials.length
+      });
+    } catch (error: any) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
 
   // Fetch materials
   const fetchMaterials = async () => {
@@ -334,9 +361,9 @@ export default function AdminMaterialsPage() {
         q: searchQuery || undefined,
       });
 
-      setMaterials(response.items);
-      setTotalPages(Math.ceil(response.total / pageSize));
-      setTotalCount(response.total);
+      setMaterials(response);
+      setTotalPages(1);
+      setTotalCount(response.length);
     } catch (error: any) {
       console.error('Failed to fetch materials:', error);
       toast({
@@ -354,6 +381,7 @@ export default function AdminMaterialsPage() {
 
   useEffect(() => {
     if (profile && isAdmin(profile)) {
+      fetchStats();
       fetchMaterials();
     }
   }, [profile, activeTab, currentPage, searchQuery, toast]);
@@ -368,7 +396,8 @@ export default function AdminMaterialsPage() {
         description: `Đã ${decision === 'Accepted' ? 'duyệt' : 'từ chối'} tài liệu`,
       });
 
-      // Refresh the list
+      // Refresh stats and list
+      fetchStats();
       fetchMaterials();
     } catch (error: any) {
       console.error('Review failed:', error);
@@ -453,7 +482,7 @@ export default function AdminMaterialsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{totalCount}</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
                 <p className="text-sm text-muted-foreground">Tổng số tài liệu</p>
               </div>
               <FileText className="h-8 w-8 text-muted-foreground" />
@@ -466,7 +495,7 @@ export default function AdminMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {(materials || []).filter(m => m.status === MaterialStatus.Pending).length}
+                  {stats.pending}
                 </p>
                 <p className="text-sm text-muted-foreground">Chờ duyệt</p>
               </div>
@@ -480,7 +509,7 @@ export default function AdminMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-green-600">
-                  {(materials || []).filter(m => m.status === MaterialStatus.Accepted).length}
+                  {stats.accepted}
                 </p>
                 <p className="text-sm text-muted-foreground">Đã duyệt</p>
               </div>
@@ -494,7 +523,7 @@ export default function AdminMaterialsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-red-600">
-                  {(materials || []).filter(m => m.status === MaterialStatus.Rejected).length}
+                  {stats.rejected}
                 </p>
                 <p className="text-sm text-muted-foreground">Bị từ chối</p>
               </div>

@@ -301,14 +301,14 @@ export default function AdminStudyMaterialsDashboard() {
           const inactiveCategories = allCategories.filter(cat => !cat.isActive);
 
           setStats({
-            totalMaterials: pendingData.total + acceptedData.total + rejectedData.total,
-            pendingMaterials: pendingData.total,
-            acceptedMaterials: acceptedData.total,
-            rejectedMaterials: rejectedData.total,
+            totalMaterials: pendingData.length + acceptedData.length + rejectedData.length,
+            pendingMaterials: pendingData.length,
+            acceptedMaterials: acceptedData.length,
+            rejectedMaterials: rejectedData.length,
             totalCategories: allCategories.length,
             activeCategories: activeCategories.length,
             inactiveCategories: inactiveCategories.length,
-            recentUploads: recentData.items,
+            recentUploads: recentData,
             popularCategories: [] // TODO: Implement when backend supports analytics
           });
         } catch (error: any) {

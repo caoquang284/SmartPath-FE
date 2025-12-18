@@ -211,14 +211,12 @@ export default function MyMaterialsPage() {
       // Convert numeric status to enum value for API
       const statusValue = status === undefined ? undefined : status as 0 | 1 | 2;
       const response = await studyMaterialAPI.getMine({
-        status: statusValue,
-        page: currentPage,
-        pageSize
+        status: statusValue
       });
 
-      setMaterials(response.items);
-      setTotalPages(Math.ceil(response.total / pageSize));
-      setTotalCount(response.total);
+      setMaterials(response);
+      setTotalPages(1);
+      setTotalCount(response.length);
     } catch (error: any) {
       console.error('Failed to fetch materials:', error);
       toast({
