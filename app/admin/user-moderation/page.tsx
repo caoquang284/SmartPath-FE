@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { userAPI } from '@/lib/api/userAPI';
 import type { AdminActivityDaily, AdminDailyCount, UserAdminSummary, UserProfile } from '@/lib/types';
 import { TrendingUp, UserX, ShieldCheck } from 'lucide-react';
@@ -18,6 +19,7 @@ import { UserGrowthChart, ActivityChart } from '@/components/admin/UserCharts';
 export default function UserModerationPage() {
     const { profile } = useAuth();
     const { toast } = useToast();
+    const { t } = useLanguage();
 
     const isAdmin = useMemo(() => {
         const r: any = (profile as any)?.role;
@@ -81,14 +83,14 @@ export default function UserModerationPage() {
                 setUsers(result.items);
                 setTotalUsers(result.total);
             } catch (e: any) {
-                toast({ title: 'Lỗi', description: e?.message, variant: 'destructive' });
+                toast({ title: t.common.error, description: e?.message, variant: 'destructive' });
                 setUsers([]);
                 setTotalUsers(0);
             } finally {
                 setLoadingUsers(false);
             }
         })();
-    }, [isAdmin, q, currentPage, pageSize, toast]);
+    }, [isAdmin, q, currentPage, pageSize, toast, t]);
 
     // Reset to first page when search changes
     useEffect(() => {
@@ -107,7 +109,7 @@ export default function UserModerationPage() {
             const sum = await userAPI.summary(u.id);
             setSummary(sum);
         } catch (e: any) {
-            toast({ title: 'Lỗi', description: e?.message, variant: 'destructive' });
+            toast({ title: t.common.error, description: e?.message, variant: 'destructive' });
         }
     };
 
@@ -119,7 +121,7 @@ export default function UserModerationPage() {
                 banUntil ? new Date(banUntil).toISOString() : null,
                 banReason
             );
-            toast({ title: 'Thành công', description: 'Đã ban user' });
+            toast({ title: t.common.success, description: t.adminUsers.successBan });
             // Refresh the user list
             const result = await userAPI.getUsers({
                 q: q || undefined,
@@ -130,7 +132,7 @@ export default function UserModerationPage() {
             setTotalUsers(result.total);
             setSelected(null);
         } catch (e: any) {
-            toast({ title: 'Lỗi', description: e?.message, variant: 'destructive' });
+            toast({ title: t.common.error, description: e?.message, variant: 'destructive' });
         }
     };
 
@@ -145,7 +147,7 @@ export default function UserModerationPage() {
             setUsers(result.items);
             setTotalUsers(result.total);
         } catch (e: any) {
-            toast({ title: 'Lỗi', description: e?.message, variant: 'destructive' });
+            toast({ title: t.common.error, description: e?.message, variant: 'destructive' });
             setUsers([]);
             setTotalUsers(0);
         } finally {
@@ -157,7 +159,7 @@ export default function UserModerationPage() {
         if (!selected) return;
         try {
             await userAPI.unban(selected.id);
-            toast({ title: 'Thành công', description: 'Đã unban user' });
+            toast({ title: t.common.success, description: t.adminUsers.successUnban });
             // Refresh the user list
             const result = await userAPI.getUsers({
                 q: q || undefined,
@@ -168,23 +170,23 @@ export default function UserModerationPage() {
             setTotalUsers(result.total);
             setSelected(null);
         } catch (e: any) {
-            toast({ title: 'Unban thất bại', description: e?.message, variant: 'destructive' });
+            toast({ title: t.common.failed, description: e?.message, variant: 'destructive' });
         }
     };
 
     // Thay vì early return, render gate trong JSX dưới:
     return !isAdmin ? (
-        <div>Bạn không có quyền truy cập.</div>
+        <div>{t.common.signInRequired}</div>
     ) : (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold">User Management</h1>
+            <h1 className="text-3xl font-bold">{t.adminUsers.title}</h1>
 
             {/* Analytics */}
             <Card>
                 <CardHeader className="flex flex-col gap-2">
                     <CardTitle className="text-xl flex items-center gap-2">
                         <TrendingUp className="h-5 w-5" />
-                        Analytics (Last 30 days)
+                        {t.adminUsers.activity} (30 {t.common.days || 'days'})
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -199,9 +201,9 @@ export default function UserModerationPage() {
             {/* Users Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Users</CardTitle>
+                    <CardTitle>{t.adminUsers.totalUsers}</CardTitle>
                     <Input
-                        placeholder="Search users..."
+                        placeholder={t.adminUsers.searchPlaceholder}
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         className="max-w-sm"
@@ -214,35 +216,35 @@ export default function UserModerationPage() {
                                 <TableRow>
                                     <TableHead>Username</TableHead>
                                     <TableHead>Email</TableHead>
-                                    <TableHead>Role</TableHead>
+                                    <TableHead>{t.adminUsers.role}</TableHead>
                                     <TableHead>Point</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>{t.adminUsers.status}</TableHead>
+                                    <TableHead className="text-right">{t.adminUsers.actions}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loadingUsers ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-6">Loading...</TableCell>
+                                        <TableCell colSpan={6} className="text-center py-6">{t.common.loading}</TableCell>
                                     </TableRow>
                                 ) : users.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-6">No users found</TableCell>
+                                        <TableCell colSpan={6} className="text-center py-6">{t.common.noData}</TableCell>
                                     </TableRow>
                                 ) : (
                                     users.map((u) => (
                                         <TableRow key={u.id}>
                                             <TableCell>{u.username}</TableCell>
                                             <TableCell>{u.email}</TableCell>
-                                            <TableCell>{typeof u.role === 'number' ? (u.role === 0 ? 'admin' : 'student') : (u.role || '')}</TableCell>
+                                            <TableCell>{typeof u.role === 'number' ? (u.role === 0 ? t.common.admin : t.common.user) : (u.role || '')}</TableCell>
                                             <TableCell>{u.point ?? 0}</TableCell>
-                                            <TableCell>{u.isBanned ? 'BANNED' : 'Active'}</TableCell>
+                                            <TableCell>{u.isBanned ? t.adminUsers.ban : t.adminCategories.active}</TableCell>
                                             <TableCell className="text-right space-x-2">
-                                                <Button size="sm" variant="outline" onClick={() => openUser(u)}>Details</Button>
+                                                <Button size="sm" variant="outline" onClick={() => openUser(u)}>{t.common.view}</Button>
                                                 {u.isBanned ? (
-                                                    <Button size="sm" onClick={async () => { setSelected(u); await unban(); }}>Unban</Button>
+                                                    <Button size="sm" onClick={async () => { setSelected(u); await unban(); }}>{t.adminUsers.unban}</Button>
                                                 ) : (
-                                                    <Button size="sm" variant="destructive" onClick={() => { setSelected(u); }}>Ban</Button>
+                                                    <Button size="sm" variant="destructive" onClick={() => { setSelected(u); }}>{t.adminUsers.ban}</Button>
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -271,25 +273,25 @@ export default function UserModerationPage() {
             <Dialog open={!!selected} onOpenChange={(o) => { if (!o) { setSelected(null); setSummary(null); } }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>User details</DialogTitle>
+                        <DialogTitle>{t.adminUsers.userDetails}</DialogTitle>
                     </DialogHeader>
                     {selected && (
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div><b>Username:</b> {selected.username}</div>
                                 <div><b>Email:</b> {selected.email}</div>
-                                <div><b>Role:</b> {typeof selected.role === 'number' ? (selected.role === 0 ? 'admin' : 'student') : (selected.role || '')}</div>
+                                <div><b>{t.adminUsers.role}:</b> {typeof selected.role === 'number' ? (selected.role === 0 ? t.common.admin : t.common.user) : (selected.role || '')}</div>
                                 <div><b>Point:</b> {selected.point ?? 0}</div>
-                                <div><b>Status:</b> {selected.isBanned ? 'BANNED' : 'Active'}</div>
-                                <div><b>Joined:</b> {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : '-'}</div>
+                                <div><b>{t.adminUsers.status}:</b> {selected.isBanned ? t.adminUsers.ban : t.adminCategories.active}</div>
+                                <div><b>{t.adminUsers.joinedDate}:</b> {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : '-'}</div>
                             </div>
 
                             {summary && (
                                 <div className="rounded-md border p-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                                    <div><b>Posts:</b> {summary.posts}</div>
-                                    <div><b>Comments:</b> {summary.comments}</div>
+                                    <div><b>{t.adminUsers.posts}:</b> {summary.posts}</div>
+                                    <div><b>{t.adminUsers.comments}:</b> {summary.comments}</div>
                                     <div><b>Reactions:</b> {summary.reactions}</div>
-                                    <div><b>Friends:</b> {summary.friends}</div>
+                                    <div><b>{t.common.friends}:</b> {summary.friends}</div>
                                     <div><b>Reports against:</b> {summary.reportsAgainst}</div>
                                     <div><b>Reports filed:</b> {summary.reportsFiled}</div>
                                 </div>
@@ -297,21 +299,21 @@ export default function UserModerationPage() {
 
                             {selected.isBanned ? (
                                 <div className="flex items-center gap-2">
-                                    <Button onClick={unban}><ShieldCheck className="h-4 w-4 mr-1" />Unban</Button>
+                                    <Button onClick={unban}><ShieldCheck className="h-4 w-4 mr-1" />{t.adminUsers.unban}</Button>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    <Label>Ban until (optional, ISO)</Label>
+                                    <Label>{t.adminUsers.banUntil} (optional, ISO)</Label>
                                     <Input type="datetime-local" value={banUntil} onChange={(e) => setBanUntil(e.target.value)} />
-                                    <Label>Reason (optional)</Label>
+                                    <Label>{t.adminUsers.banReason} (optional)</Label>
                                     <Input value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Spam, abuse, ..." />
-                                    <Button variant="destructive" onClick={ban}><UserX className="h-4 w-4 mr-1" />Ban user</Button>
+                                    <Button variant="destructive" onClick={ban}><UserX className="h-4 w-4 mr-1" />{t.adminUsers.ban}</Button>
                                 </div>
                             )}
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setSelected(null); setSummary(null); }}>Close</Button>
+                        <Button variant="outline" onClick={() => { setSelected(null); setSummary(null); }}>{t.common.close}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

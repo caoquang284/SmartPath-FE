@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { materialCategoryAPI, studyMaterialAPI } from '@/lib/api/studyMaterialAPI';
 import { MaterialCategory, StudyMaterialResponse, MaterialCategoryCreateRequest, MaterialCategoryUpdateRequest, SourceType } from '@/lib/types';
@@ -56,6 +57,7 @@ function CategoryNode({
   onEdit,
   onDelete
 }: CategoryNodeProps) {
+  const { t } = useLanguage();
   const hasChildren = category.children && category.children.length > 0;
   const isExpanded = expanded.has(category.id);
   const isSelected = selectedCategory?.id === category.id;
@@ -113,7 +115,7 @@ function CategoryNode({
               e.stopPropagation();
               onSelect(category);
             }}
-            title="View details"
+            title={t.common.view}
           >
             <Eye className="h-3 w-3" />
           </Button>
@@ -125,7 +127,7 @@ function CategoryNode({
               e.stopPropagation();
               onEdit(category);
             }}
-            title="Edit category"
+            title={t.common.edit}
           >
             <Edit className="h-3 w-3" />
           </Button>
@@ -137,7 +139,7 @@ function CategoryNode({
               e.stopPropagation();
               onDelete(category);
             }}
-            title="Delete category"
+            title={t.common.delete}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -173,6 +175,7 @@ interface CategoryFormProps {
 }
 
 function CategoryForm({ category, parentCategory, onSubmit, onCancel }: CategoryFormProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: category?.name || '',
     slug: category?.slug || '',
@@ -192,18 +195,18 @@ function CategoryForm({ category, parentCategory, onSubmit, onCancel }: Category
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Tên danh mục *</Label>
+        <Label htmlFor="name">{t.adminCategories.name} *</Label>
         <Input
           id="name"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Nhập tên danh mục"
+          placeholder={t.adminCategories.name}
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="slug">Slug (URL-friendly name)</Label>
+        <Label htmlFor="slug">{t.adminCategories.slug} (URL-friendly name)</Label>
         <Input
           id="slug"
           value={formData.slug}
@@ -219,7 +222,7 @@ function CategoryForm({ category, parentCategory, onSubmit, onCancel }: Category
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="sortOrder">Thứ tự sắp xếp</Label>
+        <Label htmlFor="sortOrder">{t.adminCategories.sortOrder}</Label>
         <Input
           id="sortOrder"
           type="number"
@@ -235,24 +238,24 @@ function CategoryForm({ category, parentCategory, onSubmit, onCancel }: Category
           checked={formData.isActive}
           onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
         />
-        <Label htmlFor="isActive">Kích hoạt</Label>
+        <Label htmlFor="isActive">{t.adminCategories.active}</Label>
       </div>
 
       {parentCategory && (
         <Alert>
           <FolderTree className="h-4 w-4" />
           <AlertDescription>
-            Danh mục con của: <strong>{parentCategory.name}</strong> (/{parentCategory.path})
+            {t.adminCategories.parent}: <strong>{parentCategory.name}</strong> (/{parentCategory.path})
           </AlertDescription>
         </Alert>
       )}
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>
-          Hủy
+          {t.common.cancel}
         </Button>
         <Button type="submit">
-          {category ? 'Cập nhật' : 'Tạo mới'}
+          {category ? t.common.save : t.common.create}
         </Button>
       </DialogFooter>
     </form>
@@ -265,6 +268,7 @@ interface CategoryDetailProps {
 }
 
 function CategoryDetail({ category, onClose }: CategoryDetailProps) {
+  const { t } = useLanguage();
   const [materials, setMaterials] = useState<StudyMaterialResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -290,51 +294,51 @@ function CategoryDetail({ category, onClose }: CategoryDetailProps) {
   return (
     <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Chi tiết danh mục</DialogTitle>
+        <DialogTitle>{t.adminCategories.title}</DialogTitle>
         <DialogDescription>
-          Thông tin và tài liệu trong danh mục
+          {t.adminCategories.name}: {category.name}
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label className="text-sm font-medium">Tên danh mục</Label>
+            <Label className="text-sm font-medium">{t.adminCategories.name}</Label>
             <p className="text-sm">{category.name}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium">Đường dẫn</Label>
+            <Label className="text-sm font-medium">Path</Label>
             <p className="text-sm">/{category.path}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium">Slug</Label>
+            <Label className="text-sm font-medium">{t.adminCategories.slug}</Label>
             <p className="text-sm">{category.slug}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium">Cấp độ</Label>
+            <Label className="text-sm font-medium">Level</Label>
             <p className="text-sm">{category.level}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium">Thứ tự</Label>
+            <Label className="text-sm font-medium">{t.adminCategories.sortOrder}</Label>
             <p className="text-sm">{category.sortOrder}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium">Trạng thái</Label>
+            <Label className="text-sm font-medium">{t.adminCategories.active}</Label>
             <p className="text-sm">
               <Badge variant={category.isActive ? 'default' : 'secondary'}>
-                {category.isActive ? 'Kích hoạt' : 'Vô hiệu'}
+                {category.isActive ? t.common.success : t.common.failed}
               </Badge>
             </p>
           </div>
         </div>
 
         <div>
-          <Label className="text-sm font-medium">Danh mục con</Label>
-          <p className="text-sm">{category.children?.length || 0} danh mục con</p>
+          <Label className="text-sm font-medium">{t.adminCategories.parent}</Label>
+          <p className="text-sm">{category.children?.length || 0} children</p>
         </div>
 
         <div>
-          <Label className="text-sm font-medium">Tài liệu gần đây</Label>
+          <Label className="text-sm font-medium">{t.common.materials}</Label>
           {loading ? (
             <div className="space-y-2 mt-2">
               <Skeleton className="h-8 w-full" />
@@ -342,7 +346,7 @@ function CategoryDetail({ category, onClose }: CategoryDetailProps) {
               <Skeleton className="h-8 w-full" />
             </div>
           ) : materials.length === 0 ? (
-            <p className="text-sm text-muted-foreground mt-2">Chưa có tài liệu nào</p>
+            <p className="text-sm text-muted-foreground mt-2">{t.common.noData}</p>
           ) : (
             <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
               {materials.map((material) => (
@@ -350,7 +354,7 @@ function CategoryDetail({ category, onClose }: CategoryDetailProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{material.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {material.sourceType === SourceType.File ? 'Tệp' : 'URL'} • {new Date(material.createdAt).toLocaleDateString()}
+                      {material.sourceType === SourceType.File ? 'File' : 'URL'} • {new Date(material.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <Link href={`/materials/${material.id}`}>
@@ -366,7 +370,7 @@ function CategoryDetail({ category, onClose }: CategoryDetailProps) {
       </div>
 
       <DialogFooter>
-        <Button onClick={onClose}>Đóng</Button>
+        <Button onClick={onClose}>{t.common.close}</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -389,6 +393,7 @@ function CategoryTreeSkeleton() {
 export default function AdminCategoriesPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [categories, setCategories] = useState<MaterialCategory[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -406,12 +411,12 @@ export default function AdminCategoriesPage() {
   useEffect(() => {
     if (profile && !isAdmin(profile)) {
       toast({
-        title: 'Không có quyền truy cập',
-        description: 'Trang này chỉ dành cho quản trị viên',
+        title: t.common.error,
+        description: t.common.signInRequired,
         variant: 'destructive',
       });
     }
-  }, [profile, toast]);
+  }, [profile, toast, t]);
 
   // Fetch categories
   useEffect(() => {
@@ -429,8 +434,8 @@ export default function AdminCategoriesPage() {
         } catch (error: any) {
           console.error('Failed to fetch categories:', error);
           toast({
-            title: 'Lỗi',
-            description: error.error || 'Không tải được danh mục',
+            title: t.common.error,
+            description: error.error || t.adminCategories.errorLoad,
             variant: 'destructive',
           });
         } finally {
@@ -440,7 +445,7 @@ export default function AdminCategoriesPage() {
 
       fetchCategories();
     }
-  }, [profile, toast]);
+  }, [profile, toast, t]);
 
   const handleToggleExpand = (categoryId: string) => {
     setExpandedCategories(prev => {
@@ -459,8 +464,8 @@ export default function AdminCategoriesPage() {
       // Ensure data matches MaterialCategoryCreateRequest type for create operation
       await materialCategoryAPI.create(data as MaterialCategoryCreateRequest);
       toast({
-        title: 'Thành công',
-        description: 'Đã tạo danh mục mới',
+        title: t.common.success,
+        description: t.adminCategories.successCreate,
       });
       setShowCreateDialog(false);
       setParentForNew(null);
@@ -480,8 +485,8 @@ export default function AdminCategoriesPage() {
       fetchCategories();
     } catch (error: any) {
       toast({
-        title: 'Lỗi',
-        description: error.error || 'Không thể tạo danh mục',
+        title: t.common.error,
+        description: error.error || t.adminCategories.errorAction,
         variant: 'destructive',
       });
     }
@@ -493,8 +498,8 @@ export default function AdminCategoriesPage() {
     try {
       await materialCategoryAPI.update(editingCategory.id, data);
       toast({
-        title: 'Thành công',
-        description: 'Đã cập nhật danh mục',
+        title: t.common.success,
+        description: t.adminCategories.successUpdate,
       });
       setShowEditDialog(false);
       setEditingCategory(null);
@@ -510,23 +515,23 @@ export default function AdminCategoriesPage() {
       fetchCategories();
     } catch (error: any) {
       toast({
-        title: 'Lỗi',
-        description: error.error || 'Không thể cập nhật danh mục',
+        title: t.common.error,
+        description: error.error || t.adminCategories.errorAction,
         variant: 'destructive',
       });
     }
   };
 
   const handleDeleteCategory = async (category: MaterialCategory) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa danh mục "${category.name}"?`)) {
+    if (!confirm(t.adminCategories.confirmDelete)) {
       return;
     }
 
     try {
       await materialCategoryAPI.delete(category.id);
       toast({
-        title: 'Thành công',
-        description: 'Đã xóa danh mục',
+        title: t.common.success,
+        description: t.adminCategories.successDelete,
       });
       // Refresh categories
       const fetchCategories = async () => {
@@ -540,8 +545,8 @@ export default function AdminCategoriesPage() {
       fetchCategories();
     } catch (error: any) {
       toast({
-        title: 'Lỗi',
-        description: error.error || 'Không thể xóa danh mục',
+        title: t.common.error,
+        description: error.error || t.adminCategories.errorAction,
         variant: 'destructive',
       });
     }
@@ -554,12 +559,12 @@ export default function AdminCategoriesPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Không có quyền truy cập</h2>
+            <h2 className="text-xl font-semibold mb-2">{t.common.error}</h2>
             <p className="text-muted-foreground mb-4">
-              Trang này chỉ dành cho quản trị viên
+              {t.common.signInRequired}
             </p>
             <Link href="/dashboard">
-              <Button>Quay lại dashboard</Button>
+              <Button>{t.common.back}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -572,9 +577,9 @@ export default function AdminCategoriesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Quản lý danh mục</h1>
+          <h1 className="text-3xl font-bold">{t.adminCategories.title}</h1>
           <p className="text-muted-foreground">
-            Tổ chức và quản lý cây tri thức cho tài liệu học tập
+            {t.adminCategories.title}
           </p>
         </div>
 
@@ -582,12 +587,12 @@ export default function AdminCategoriesPage() {
           <Link href="/admin/materials">
             <Button variant="outline">
               <BookOpen className="mr-2 h-4 w-4" />
-              Quản lý tài liệu
+              {t.common.materials}
             </Button>
           </Link>
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Thêm danh mục
+            {t.adminCategories.create}
           </Button>
         </div>
       </div>
@@ -599,7 +604,7 @@ export default function AdminCategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold">{categories.length}</p>
-                <p className="text-sm text-muted-foreground">Tổng danh mục</p>
+                <p className="text-sm text-muted-foreground">{t.adminCategories.title}</p>
               </div>
               <FolderTree className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -613,7 +618,7 @@ export default function AdminCategoriesPage() {
                 <p className="text-2xl font-bold">
                   {categories.filter(cat => cat.isActive).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Đang kích hoạt</p>
+                <p className="text-sm text-muted-foreground">{t.adminCategories.active}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -627,7 +632,7 @@ export default function AdminCategoriesPage() {
                 <p className="text-2xl font-bold">
                   {categories.filter(cat => !cat.isActive).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Đang vô hiệu</p>
+                <p className="text-sm text-muted-foreground">Inactive</p>
               </div>
               <XCircle className="h-8 w-8 text-red-600" />
             </div>
@@ -640,9 +645,9 @@ export default function AdminCategoriesPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Cây danh mục</CardTitle>
+              <CardTitle>{t.adminCategories.title}</CardTitle>
               <CardDescription>
-                Cấu trúc danh mục tài liệu theo phân cấp
+                {t.adminCategories.title}
               </CardDescription>
             </CardHeader>
             <CardContent className="max-h-96 overflow-y-auto">
@@ -651,10 +656,10 @@ export default function AdminCategoriesPage() {
               ) : categories.length === 0 ? (
                 <div className="text-center py-8">
                   <FolderTree className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Chưa có danh mục nào</p>
+                  <p className="text-muted-foreground">{t.common.noData}</p>
                   <Button onClick={() => setShowCreateDialog(true)} className="mt-4">
                     <Plus className="mr-2 h-4 w-4" />
-                    Tạo danh mục đầu tiên
+                    {t.adminCategories.create}
                   </Button>
                 </div>
               ) : (
@@ -688,41 +693,40 @@ export default function AdminCategoriesPage() {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Hướng dẫn</CardTitle>
+              <CardTitle>{t.common.info}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium mb-2">Quản lý danh mục</h4>
+                <h4 className="font-medium mb-2">{t.adminCategories.title}</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Nhấp vào mũi tên để mở/đóng danh mục con</li>
-                  <li>• Nhấp vào biểu tượng mắt để xem chi tiết</li>
-                  <li>• Nhấp vào biểu tượng bút để chỉnh sửa</li>
-                  <li>• Nhấp vào biểu tượng thùng rác để xóa</li>
+                  <li>• {t.common.view}</li>
+                  <li>• {t.common.edit}</li>
+                  <li>• {t.common.delete}</li>
                 </ul>
               </div>
 
               <div>
-                <h4 className="font-medium mb-2">Cấu trúc cây</h4>
+                <h4 className="font-medium mb-2">Tree Structure</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Level 0: Danh mục gốc</li>
-                  <li>• Level 1+: Danh mục con</li>
-                  <li>• Path: Tạo URL-friendly path</li>
-                  <li>• Sort Order: Thứ tự hiển thị</li>
+                  <li>• Level 0: Root</li>
+                  <li>• Level 1+: Child</li>
+                  <li>• Path: URL-friendly path</li>
+                  <li>• Sort Order: Display order</li>
                 </ul>
               </div>
 
               <div>
-                <h4 className="font-medium mb-2">Trạng thái</h4>
+                <h4 className="font-medium mb-2">{t.adminCategories.active}</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• <span className="text-green-600">Kích hoạt</span>: Hiển thị cho người dùng</li>
-                  <li>• <span className="text-red-600">Vô hiệu</span>: Ẩn khỏi người dùng</li>
+                  <li>• <span className="text-green-600">{t.adminCategories.active}</span>: {t.common.view}</li>
+                  <li>• <span className="text-red-600">Inactive</span>: Hidden</li>
                 </ul>
               </div>
 
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Hệ thống quản lý danh mục đã sẵn sàng sử dụng. Xóa danh mục sẽ xóa cả các danh mục con và tài liệu liên quan.
+                  {t.adminCategories.deleteWarning}
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -734,9 +738,9 @@ export default function AdminCategoriesPage() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Thêm danh mục mới</DialogTitle>
+            <DialogTitle>{t.adminCategories.create}</DialogTitle>
             <DialogDescription>
-              Tạo danh mục mới trong hệ thống
+              {t.adminCategories.create}
             </DialogDescription>
           </DialogHeader>
           <CategoryForm
@@ -754,9 +758,9 @@ export default function AdminCategoriesPage() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Chỉnh sửa danh mục</DialogTitle>
+            <DialogTitle>{t.adminCategories.edit}</DialogTitle>
             <DialogDescription>
-              Cập nhật thông tin danh mục
+              {t.adminCategories.edit}
             </DialogDescription>
           </DialogHeader>
           {editingCategory && (
